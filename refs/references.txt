@@ -3,3 +3,5 @@ https://aws.amazon.com/pt/cli/
 https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
 https://docs.aws.amazon.com/pt_br/AmazonS3/latest/userguide/s3-userguide.pdf
 https://buildmedia.readthedocs.org/media/pdf/boto3/latest/boto3.pdf
+https://github.com/boto/boto3/issues/1716
+https://www.youtube.com/watch?v=wzXekHrvldM&list=PLc2rvfiptPSShzrR4vB_ZccNOuAX7dtmf&index=12
