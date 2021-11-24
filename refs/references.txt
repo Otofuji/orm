@@ -5,3 +5,7 @@ https://docs.aws.amazon.com/pt_br/AmazonS3/latest/userguide/s3-userguide.pdf
 https://buildmedia.readthedocs.org/media/pdf/boto3/latest/boto3.pdf
 https://github.com/boto/boto3/issues/1716
 https://www.youtube.com/watch?v=wzXekHrvldM&list=PLc2rvfiptPSShzrR4vB_ZccNOuAX7dtmf&index=12
+https://stackoverflow.com/questions/9270734/ssh-permissions-are-too-open-error
+https://aws.amazon.com/premiumsupport/knowledge-center/ec2-internet-connectivity/
+https://github.com/franciol/Projeto_Cloud (visualização autorizada dentro de determinadas premissas e feita de forma legal, com autorização tanto do professor quanto do autor, porém sem cópia do material, pois configuraria plágio)
+https://www.postgresql.org/docs/9.2/app-psql.html
