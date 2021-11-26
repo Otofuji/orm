@@ -34,21 +34,25 @@ ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
 #   AVISO DISCIPLINAR: A um observador externo e conhecedor das diretrizes gerais de programação do Insper, pode suscitar dúvidas quanto à consulta feita ao trabalho elaborado por franciol. Todavia, cabe ressaltar que essa visualização foi feita dentro de premissas permitidas e legais, diante do objetivo de aprendizagem para este projeto, que envolve uma etapa de pesquisa tanto em documentação quanto em projetos similares. Não por interpretação minha, mas por explícita autorização tanto do professor da disciplina quanto do autor do projeto anterior e, além disso, com a explícita inclusão dos créditos a todas as referências consultadas. Note que a pasta de referências contém extensas documentações e linhas de referências em references.txt. Todo esse material foi usado para embasar este projeto e de forma nenhuma constitui plágio ou infração às diretrizes de integridade intelectual do Insper. Antes de proceder à visualização desse material, foi discutido com o professor em detalhes sobre essa autorização, definindo o que está dentro da proposta do projeto e é considerado aceitável ou recomendável. Portanto, declaro que tudo está dentro das regras como deveria estar e que não foi cometida nenhuma desonestidade intelectual no processo de elaboração deste projeto, submetido à avaliação para a disciplina Computação em Nuvem em 3 de dezembro de 2021. Caso você seja um aluno lendo isto para fazer o projeto de uma disciplina, converse com seu professor antes de prosseguir a leitura para ter certeza que está tudo bem estar lendo isso. Caso contrário, não prossiga com a leitura.
 #   Até 26/11/2021, estava tendando primeiro criar os SGs para depois verificar as instâncias. Porém, me deparei com um problema inesperado. Ao rodar o programa pela segunda vez, ele não conseguia apagar o SG existente. De acordo com https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca, isso se deve à existência de uma instância que foi criada na última vez em que foi rodado. Para contornar isso, primeiro apagarei as instâncias existentes, usando uma adaptação prática do que consta na documentação do Boto3 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html.
 
+#APAGA INSTÂNCIAS DE OHIO
 ids = []
 instances = ec2_resource_us_east_2.instances.filter(
     Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
 for instance in instances:
     ids.append(instance.id)
 ec2_resource_us_east_2.instances.filter(InstanceIds=ids).terminate()
+#apaga instâncias de Ohio
 
+#APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
 ids = []
 instances = ec2_resource_us_east_1.instances.filter(
     Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
 for instance in instances:
     ids.append(instance.id)
 ec2_resource_us_east_1.instances.filter(InstanceIds=ids).terminate()
+#apaga instâncias de Virgínia do Norte
 
-#APAGA SECURITY GROUP EXISTENTE
+#APAGA SECURITY GROUP EXISTENTE DE OHIO
 existing_SG = ec2_us_east_2.describe_vpcs()
 vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
 try:
@@ -59,8 +63,20 @@ try:
             resp = ec2_us_east_2.delete_security_group(GroupId=security_group_id)
 except ClientError as e:
     print(e)
+#apaga security group existente de Ohio
 
-#apaga security group existente
+#APAGA SECURITY GROUP EXISTENTE DE VIRGÍNIA DO NORTE
+existing_SG = ec2_us_east_1.describe_vpcs()
+vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
+try:
+    resp = ec2_us_east_1.describe_security_groups()
+    for i in resp['SecurityGroups']:
+        if(i['GroupName'] == 'SG-US-EAST-1'):
+            security_group_id = i['GroupId']
+            resp = ec2_us_east_1.delete_security_group(GroupId=security_group_id)
+except ClientError as e:
+    print(e)
+#apaga security group existente de Virgínia do Norte
 
 #CRIA NOVO SECURITY GROUP
 try:
