@@ -11,3 +11,4 @@ https://github.com/franciol/Projeto_Cloud (visualização autorizada dentro de d
 https://www.postgresql.org/docs/9.2/app-psql.html
 https://stackoverflow.com/questions/89228/how-to-execute-a-program-or-call-a-system-command
 https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
+https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca
