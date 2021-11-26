@@ -11,6 +11,7 @@
 
 #PRÉ-REQUISITO: Ter instalado AWS CLI e então o comando $ pip install 'boto3[crt]'
 
+
 #IMPORTS
 import sys
 import boto3
@@ -26,6 +27,15 @@ ec2_us_east_2 = boto3.client('ec2', region_name = 'us-east-2')
 #cliente
 
 
+#   Baseando em https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3, criando aqui uma função para fazer comandos depois nas instâncias. Isso permitirá que as coisas rodem automaticamente, sem a necessidade de intervenção manual no terminal.
+
+def exec(client, command, instance):
+    resp = client.send_command(
+        DocumentName="AWS-RunShellScript", # One of AWS' preconfigured documents
+        Parameters={'commands': commands},
+        InstanceIds=instance,
+    )
+    return resp
 
 #   Inicialmente, havia lançado instância usando o Security Group manipulado diretamente no console da AWS, via navegador. Porém, para maior automatização e menor dependência de ter que ficar organizando as coisa por fora, vou configurar o SG por aqui mesmo usando o Boto3. Por referência, usarei a configuração de Security Group do KGP Talkie.
 #   Durante a explicação do KGP Talkie, ele visualiza os SGs e, ao constatar nenhum SG fora o padrão, mostra como criar um Security Group. Isso funciona na primeira vez, mas me leva a pensar: e se rodar novamente? Ele não pode criar algo que já existe. Portanto, é necessário verificar se o SG já existe e, caso contrário, então proceder para criá-lo. Por referência, github@franciol faz essa verificação de forma mais dramática, mas suficientemente funcional para o nosso caso. Ele apaga o SG existente e então cria-o novamente. É a mesma lógica que usamos ao fazer DROP TABLE IF EXISTS antes de um CREATE TABLE em um banco de dados relacional. 
@@ -92,4 +102,7 @@ instances = ec2_resource_us_east_2.create_instances(
 )
 #cria nova instância
 
-#ACESSA INSTÂNCIA CRIADA
+#CONFIGURA BANCO DE DADOS 
+exec(ec2_us_east_2, 'sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y', instances)
+exec(ec2_us_east_2, 'sudo apt install postgresql postgresql-contrib -y', instances)
+print(instances)
