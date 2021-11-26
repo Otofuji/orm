@@ -58,7 +58,7 @@ ec2_resource_us_east_1.instances.filter(InstanceIds=ids).terminate()
 
 #APAGA SECURITY GROUP EXISTENTE DE OHIO
 existing_SG = ec2_us_east_2.describe_vpcs()
-vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
+vpc_id_2 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
 try:
     resp = ec2_us_east_2.describe_security_groups()
     for i in resp['SecurityGroups']:
@@ -71,7 +71,7 @@ except ClientError as e:
 
 #APAGA SECURITY GROUP EXISTENTE DE VIRGÍNIA DO NORTE
 existing_SG = ec2_us_east_1.describe_vpcs()
-vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
+vpc_id_1 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
 try:
     resp = ec2_us_east_1.describe_security_groups()
     for i in resp['SecurityGroups']:
@@ -86,9 +86,9 @@ except ClientError as e:
 try:
     resp = ec2_us_east_2.create_security_group(GroupName='SG-US-EAST-2',
                                          Description='SG-US-EAST-2',
-                                         VpcId=vpc_id)
+                                         VpcId=vpc_id_2)
     us_east_2_security_group_id = resp['GroupId']
-    print('Security Group Created %s in vpc %s.' % (us_east_2_security_group_id, vpc_id))
+    print('Security Group Created %s in vpc %s.' % (us_east_2_security_group_id, vpc_id_2))
 
     data = ec2_us_east_2.authorize_security_group_ingress(
         GroupId=us_east_2_security_group_id,
@@ -110,9 +110,9 @@ except ClientError as e:
 try:
     resp = ec2_us_east_1.create_security_group(GroupName='SG-US-EAST-1',
                                          Description='SG-US-EAST-1',
-                                         VpcId=vpc_id)
+                                         VpcId=vpc_id_1)
     us_east_1_security_group_id = resp['GroupId']
-    print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id))
+    print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id_1))
 
     data = ec2_us_east_1.authorize_security_group_ingress(
         GroupId=us_east_1_security_group_id,
