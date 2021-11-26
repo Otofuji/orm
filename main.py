@@ -15,40 +15,44 @@
 import sys
 import boto3
 from botocore.exceptions import ClientError
+import subprocess
 #imports
 
+
+
 #CLIENTE
-ec2 = boto3.client('ec2')
+ec2_us_east_1 = boto3.client('ec2', region_name = 'us-east-1')
+ec2_us_east_2 = boto3.client('ec2', region_name = 'us-east-2')
 #cliente
 
 
 
 #   Inicialmente, havia lançado instância usando o Security Group manipulado diretamente no console da AWS, via navegador. Porém, para maior automatização e menor dependência de ter que ficar organizando as coisa por fora, vou configurar o SG por aqui mesmo usando o Boto3. Por referência, usarei a configuração de Security Group do KGP Talkie.
 #   Durante a explicação do KGP Talkie, ele visualiza os SGs e, ao constatar nenhum SG fora o padrão, mostra como criar um Security Group. Isso funciona na primeira vez, mas me leva a pensar: e se rodar novamente? Ele não pode criar algo que já existe. Portanto, é necessário verificar se o SG já existe e, caso contrário, então proceder para criá-lo. Por referência, github@franciol faz essa verificação de forma mais dramática, mas suficientemente funcional para o nosso caso. Ele apaga o SG existente e então cria-o novamente. É a mesma lógica que usamos ao fazer DROP TABLE IF EXISTS antes de um CREATE TABLE em um banco de dados relacional. 
-#   AVISO DISCIPLINAR: A um observador externo e conhecedor das diretrizes gerais de programação do Insper, pode suscitar dúvidas quanto à consulta feita ao trabalho elaborado por franciol. Todavia, cabe ressaltar que essa visualização foi feita dentro de premissas permitidas e legais, diante do objetivo de aprendizagem para este projeto, que envolve uma etapa de pesquisa tanto em documentação quanto em projetos similares. Não por interpretação minha, mas por explícita autorização tanto do professor da disciplina quanto do autor do projeto anterior e, além disso, com a explícita inclusão dos créditos a todas as referências consultadas. Note que a pasta de referências contém extensas documentações e linhas de referências em references.txt. Todo esse material foi usado para embasar este projeto e de forma nenhuma constitui plágio ou infração às diretrizes de integridade intelectual do Insper. Antes de proceder à visualização desse material, foi discutido com o professor em detalhes sobre essa autorização, definindo o que está dentro da proposta do projeto e é considerado aceitável ou recomendável. Portanto, declaro que tudo está dentro das regras como deveria estar e que não foi cometida nenhuma desonestidade intelectual no processo de elaboração deste projeto, submetido à avaliação para a disciplina Computação em Nuvem em 3 de dezembro de 2021.
+#   AVISO DISCIPLINAR: A um observador externo e conhecedor das diretrizes gerais de programação do Insper, pode suscitar dúvidas quanto à consulta feita ao trabalho elaborado por franciol. Todavia, cabe ressaltar que essa visualização foi feita dentro de premissas permitidas e legais, diante do objetivo de aprendizagem para este projeto, que envolve uma etapa de pesquisa tanto em documentação quanto em projetos similares. Não por interpretação minha, mas por explícita autorização tanto do professor da disciplina quanto do autor do projeto anterior e, além disso, com a explícita inclusão dos créditos a todas as referências consultadas. Note que a pasta de referências contém extensas documentações e linhas de referências em references.txt. Todo esse material foi usado para embasar este projeto e de forma nenhuma constitui plágio ou infração às diretrizes de integridade intelectual do Insper. Antes de proceder à visualização desse material, foi discutido com o professor em detalhes sobre essa autorização, definindo o que está dentro da proposta do projeto e é considerado aceitável ou recomendável. Portanto, declaro que tudo está dentro das regras como deveria estar e que não foi cometida nenhuma desonestidade intelectual no processo de elaboração deste projeto, submetido à avaliação para a disciplina Computação em Nuvem em 3 de dezembro de 2021. Caso você seja um aluno lendo isto para fazer o projeto de uma disciplina, converse com seu professor antes de prosseguir a leitura para ter certeza que está tudo bem estar lendo isso. Caso contrário, não prossiga com a leitura.
 
 #APAGA SECURITY GROUP EXISTENTE
-existing_SG = ec2.describe_vpcs()
+existing_SG = ec2_us_east_2.describe_vpcs()
 vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
 try:
-    resp = ec2.describe_security_groups()
+    resp = ec2_us_east_2.describe_security_groups()
     for i in resp['SecurityGroups']:
         if(i['GroupName'] == 'SG-US-EAST-2'):
             security_group_id = i['GroupId']
-            resp = ec2.delete_security_group(GroupId=security_group_id)
+            resp = ec2_us_east_2.delete_security_group(GroupId=security_group_id)
 except ClientError as e:
     print(e)
 #apaga security group existente
 
 #CRIA NOVO SECURITY GROUP
 try:
-    resp = ec2.create_security_group(GroupName='SG-US-EAST-2',
+    resp = ec2_us_east_2.create_security_group(GroupName='SG-US-EAST-2',
                                          Description='SG-US-EAST-2',
                                          VpcId=vpc_id)
     security_group_id = resp['GroupId']
     print('Security Group Created %s in vpc %s.' % (security_group_id, vpc_id))
 
-    data = ec2.authorize_security_group_ingress(
+    data = ec2_us_east_2.authorize_security_group_ingress(
         GroupId=security_group_id,
         IpPermissions=[
             {'IpProtocol': 'tcp',
@@ -60,16 +64,15 @@ try:
              'ToPort': 22,
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
         ])
-    print('Ingress Successfully Set %s' % data)
 except ClientError as e:
     print(e)
 #cria novo security group
 
-#   Agora, será criada um resource para poder lançar uma instância. Isso não é de forma alguma um desvio do que foi escrito alguns parágrafos atrás. Pesquisando sobre como lançar instâncias, vi que é necessário que se faça via resource. Porém, de acordo com a documentação do Boto3, é possível criar um client facilmente a partir de um resource posteriormente, usando conforme necessário. Este trecho foi baseado no tutorial de KGP Talkie.
+#   Agora, será criada um resource para poder lançar uma instância. Isso não é de forma alguma um desvio do que foi escrito alguns parágrafos atrás. Pesquisando sobre como lançar instâncias, vi que é necessário que se faça via resource. Porém, de acordo com a documentação do Boto3, é possível criar um client facilmente a partir de um resource posteriormente, usando conforme necessário. Este trecho foi baseado no tutorial de KGP Talkie. 
 
 #CRIA NOVA INSTÂNCIA
-ec2_resource = boto3.resource('ec2')
-instances = ec2_resource.create_instances(
+ec2_resource_us_east_2 = boto3.resource('ec2', region_name = 'us-east-2')
+instances = ec2_resource_us_east_2.create_instances(
     ImageId = 'ami-020db2c14939a8efb', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
     MinCount = 1,
     MaxCount = 1,
@@ -84,7 +87,9 @@ instances = ec2_resource.create_instances(
             }
         }
     ],
-    SecurityGroups = ['default']
+    SecurityGroups = ['SG-US-EAST-2']
 
 )
 #cria nova instância
+
+#ACESSA INSTÂNCIA CRIADA

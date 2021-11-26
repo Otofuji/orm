@@ -9,3 +9,5 @@ https://stackoverflow.com/questions/9270734/ssh-permissions-are-too-open-error
 https://aws.amazon.com/premiumsupport/knowledge-center/ec2-internet-connectivity/
 https://github.com/franciol/Projeto_Cloud (visualização autorizada dentro de determinadas premissas e feita de forma legal, com autorização tanto do professor quanto do autor, porém sem cópia do material, pois configuraria plágio)
 https://www.postgresql.org/docs/9.2/app-psql.html
+https://stackoverflow.com/questions/89228/how-to-execute-a-program-or-call-a-system-command
+https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
