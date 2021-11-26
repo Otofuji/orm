@@ -27,16 +27,6 @@ ec2_us_east_2 = boto3.client('ec2', region_name = 'us-east-2')
 #cliente
 
 
-#   Baseando em https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3, criando aqui uma função para fazer comandos depois nas instâncias. Isso permitirá que as coisas rodem automaticamente, sem a necessidade de intervenção manual no terminal.
-
-def exec(client, command, instance):
-    resp = client.send_command(
-        DocumentName="AWS-RunShellScript", # One of AWS' preconfigured documents
-        Parameters={'commands': commands},
-        InstanceIds=instance,
-    )
-    return resp
-
 #   Inicialmente, havia lançado instância usando o Security Group manipulado diretamente no console da AWS, via navegador. Porém, para maior automatização e menor dependência de ter que ficar organizando as coisa por fora, vou configurar o SG por aqui mesmo usando o Boto3. Por referência, usarei a configuração de Security Group do KGP Talkie.
 #   Durante a explicação do KGP Talkie, ele visualiza os SGs e, ao constatar nenhum SG fora o padrão, mostra como criar um Security Group. Isso funciona na primeira vez, mas me leva a pensar: e se rodar novamente? Ele não pode criar algo que já existe. Portanto, é necessário verificar se o SG já existe e, caso contrário, então proceder para criá-lo. Por referência, github@franciol faz essa verificação de forma mais dramática, mas suficientemente funcional para o nosso caso. Ele apaga o SG existente e então cria-o novamente. É a mesma lógica que usamos ao fazer DROP TABLE IF EXISTS antes de um CREATE TABLE em um banco de dados relacional. 
 #   AVISO DISCIPLINAR: A um observador externo e conhecedor das diretrizes gerais de programação do Insper, pode suscitar dúvidas quanto à consulta feita ao trabalho elaborado por franciol. Todavia, cabe ressaltar que essa visualização foi feita dentro de premissas permitidas e legais, diante do objetivo de aprendizagem para este projeto, que envolve uma etapa de pesquisa tanto em documentação quanto em projetos similares. Não por interpretação minha, mas por explícita autorização tanto do professor da disciplina quanto do autor do projeto anterior e, além disso, com a explícita inclusão dos créditos a todas as referências consultadas. Note que a pasta de referências contém extensas documentações e linhas de referências em references.txt. Todo esse material foi usado para embasar este projeto e de forma nenhuma constitui plágio ou infração às diretrizes de integridade intelectual do Insper. Antes de proceder à visualização desse material, foi discutido com o professor em detalhes sobre essa autorização, definindo o que está dentro da proposta do projeto e é considerado aceitável ou recomendável. Portanto, declaro que tudo está dentro das regras como deveria estar e que não foi cometida nenhuma desonestidade intelectual no processo de elaboração deste projeto, submetido à avaliação para a disciplina Computação em Nuvem em 3 de dezembro de 2021. Caso você seja um aluno lendo isto para fazer o projeto de uma disciplina, converse com seu professor antes de prosseguir a leitura para ter certeza que está tudo bem estar lendo isso. Caso contrário, não prossiga com a leitura.
@@ -101,8 +91,3 @@ instances = ec2_resource_us_east_2.create_instances(
 
 )
 #cria nova instância
-
-#CONFIGURA BANCO DE DADOS 
-exec(ec2_us_east_2, 'sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y', instances)
-exec(ec2_us_east_2, 'sudo apt install postgresql postgresql-contrib -y', instances)
-print(instances)
