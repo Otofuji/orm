@@ -41,8 +41,13 @@ for instance in instances:
     ids.append(instance.id)
 ec2_resource_us_east_2.instances.filter(InstanceIds=ids).terminate()
 
+ids = []
+instances = ec2_resource_us_east_1.instances.filter(
+    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+for instance in instances:
+    ids.append(instance.id)
+ec2_resource_us_east_1.instances.filter(InstanceIds=ids).terminate()
 
-print("\n\ndeveria estar vazio")
 #APAGA SECURITY GROUP EXISTENTE
 existing_SG = ec2_us_east_2.describe_vpcs()
 vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
