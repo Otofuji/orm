@@ -25,7 +25,7 @@ import time
 #imports
 
 #VARIÁVEIS GLOBAIS
-terminate = False
+finishing =False
 #variáveis globais
 
 
@@ -43,83 +43,104 @@ ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
 #   Até 26/11/2021, estava tendando primeiro criar os SGs para depois verificar as instâncias. Porém, me deparei com um problema inesperado. Ao rodar o programa pela segunda vez, ele não conseguia apagar o SG existente. De acordo com https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca, isso se deve à existência de uma instância que foi criada na última vez em que foi rodado. Para contornar isso, primeiro apagarei as instâncias existentes, usando uma adaptação prática do que consta na documentação do Boto3 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html. Porém, após isso, o problema persistiu. Em conversas com Henrique Mualem, ele sugeriu uma forma diferente de realizar o mesmo procedimento. Primeiro, pega-se as instâncias usando ec2.describe_instances() ao invés de ec2.instances.filter() como havia feito inicialmente, e então filtrar os dados desse dicionário. Além disso, não estava aguardando que a instância termine, pois era necessário aguardar e, por isso, estava dando erro. Passei então a usar esse método sugerido por ele a partir de 29/11/2021, que consiste, além do mencionado, no seguinte: descrever as instâncias e SGs existentes e então deletar as instâncias usando o SG que estamos querendo usar (assim, caso haja outra instância para alguma outra coisa, este código não atrapalha ela). Após fazer isso, aguardar cinco segundos e veificar se a instância foi encerrada, e caso não aguardar mais cinco segundos. Após confirmado o encerramento da instância, apaga-se o SG de interesse e então cria-se ele. Após, autorizar o Security Group e por fim criar a instância na forma como estava criando ele inicialmente seguindo o modo sugerido pelo KGP Talkie no seu vídeo tutorial. Farei isso abaixo.
 
 #APAGA INSTÂNCIAS DE OHIO
-print("Apagando instâncias em Ohio")
-terminate = False
+finishing = False
 instances = ec2_us_east_2.describe_instances()
 instances_amount = len(instances['Reservations'])
+print("Instâncias existentes em Ohio")
+print("    ", instances_amount)
 existing_SG = ec2_us_east_2.describe_security_groups()['SecurityGroups']
 SG_amount = len(existing_SG)
 for i in range(SG_amount):
-    print("Apagando instâncias em Ohio")
+    print("Instâncias em Ohio")
     try:
         print("    Tentando apagar instâncias em Ohio")
         instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
         if instances_SG == 'SG-US-EAST-2':
             instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
             ec2_us_east_2.terminate_instances(InstanceIds = [instance_id])
-            terminate = True
+            finishing = True
             print("        Apagando uma instância")
     except:
         pass
     
-while terminate:
+while finishing:
     time.sleep(5)
-    terminate = False
+    finishing = False
     instances = ec2_us_east_2.describe_instances()
     for i in range(SG_amount):
         try:
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
             if instances_SG == 'SG-US-EAST-2':
-                terminate = True
-                print("            Ainda apagando uma instância")
+                finishing = True
+                print("            Aguarde o término da instância")
         except:
             pass
     time.sleep(5)
-print("        Apagou instâncias em Ohio")
+print("        Terminou instâncias em Ohio")
 
 #apaga instâncias de Ohio
 
 #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
-print("Apagando instâncias da Virgínia do Norte")
-terminate = False
+finishing = False
 instances = ec2_us_east_1.describe_instances()
 instances_amount = len(instances['Reservations'])
+print("Instâncias existentes na Virgínia do Norte")
+print("    ", instances_amount)
 existing_SG = ec2_us_east_1.describe_security_groups()['SecurityGroups']
 SG_amount = len(existing_SG)
 for i in range(SG_amount):
+    print("Instâncias na Virgínia do Norte")
     try:
         print("    Tentando apagar instâncias na Virgínia do Norte")
         instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
         if instances_SG == 'SG-US-EAST-1':
             instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
             ec2_us_east_1.terminate_instances(InstanceIds = [instance_id])
-            terminate = True
-
+            finishing = True
+            print("        Apagando uma instância")
     except:
         pass
     
-while terminate:
+while finishing:
     time.sleep(5)
-    terminate = False
+    finishing = False
     instances = ec2_us_east_1.describe_instances()
     for i in range(SG_amount):
         try:
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
             if instances_SG == 'SG-US-EAST-1':
-                terminate = True
-                print("        Apagando uma instância")
+                finishing = True
+                print("            Aguarde o término da instância")
         except:
             pass
     time.sleep(5)
-print("        Apagou instâncias da Virgínia do Norte")
-
+print("        Terminou instâncias na Virgínia do Norte")
 #apaga instâncias de Virgínia do Norte
+
+instances_remaining_1 = ec2_us_east_1.describe_instances()
+instances_remaining_2 = ec2_us_east_2.describe_instances()
+len_instances_remaining_1 = len(instances_remaining_1['Reservations'])
+len_instances_remaining_2 = len(instances_remaining_2['Reservations'])
+print("Instâncias remanscentes em Ohio")
+print("    ", len_instances_remaining_2)
+print("Instâncias remanescentes na Virgínia do Norte")
+print("    ", len_instances_remaining_1)
+
+SGs_remaining_1 = ec2_us_east_1.describe_security_groups()['SecurityGroups']
+SGs_remaining_2 = ec2_us_east_2.describe_security_groups()['SecurityGroups']
+len_SGs_remaining_1 = len(SGs_remaining_1)
+len_SGs_remaining_2 = len(SGs_remaining_2)
+print("SGs remanescentes em Ohio")
+print("    ", len_SGs_remaining_2)
+print("SGs remanescentes na Virgínia do Norte")
+print("    ", len_SGs_remaining_1)
+
 
 #APAGA SECURITY GROUP EXISTENTE DE OHIO
 print("Apagando SG-US-EAST-2")
 existing_SG = ec2_us_east_2.describe_vpcs()
 vpc_id_2 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
-print("    VpcId")
+print("    VpcId Ohio")
 print("        ", vpc_id_2)
 
 for i in range (SG_amount):
@@ -128,7 +149,7 @@ for i in range (SG_amount):
         print("        ", ec2_us_east_2.describe_security_groups()["SecurityGroups"][i]["GroupName"])
         if (ec2_us_east_2.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-2"):
             ec2_us_east_2.delete_security_group(GroupName = "SG-US-EAST-2")
-            print("            Apagou SGs de Ohio")
+            print("            Apagou SG de Ohio")
             break
     except:
         print("        Não foi possível apagar o Security Group")
@@ -148,7 +169,7 @@ for i in range (SG_amount):
         print("        ", ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"])
         if (ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-1"):
             ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
-            print("            Apagou SGs de Ohio")
+            print("            Apagou SG de Ohio")
             break
     except:
         print("        Não foi possível apagar o Security Group")
