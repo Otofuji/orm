@@ -21,8 +21,12 @@ import sys
 import boto3
 from botocore.exceptions import ClientError
 import subprocess
+import time
 #imports
 
+#VARIÁVEIS GLOBAIS
+terminate = False
+#variáveis globais
 
 
 #CLIENTE E RECURSO
@@ -36,58 +40,132 @@ ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
 #   Inicialmente, havia lançado instância usando o Security Group manipulado diretamente no console da AWS, via navegador. Porém, para maior automatização e menor dependência de ter que ficar organizando as coisa por fora, vou configurar o SG por aqui mesmo usando o Boto3. Por referência, usarei a configuração de Security Group do KGP Talkie.
 #   Durante a explicação do KGP Talkie, ele visualiza os SGs e, ao constatar nenhum SG fora o padrão, mostra como criar um Security Group. Isso funciona na primeira vez, mas me leva a pensar: e se rodar novamente? Ele não pode criar algo que já existe. Portanto, é necessário verificar se o SG já existe e, caso contrário, então proceder para criá-lo. Por referência, github@franciol faz essa verificação de forma mais dramática, mas suficientemente funcional para o nosso caso. Ele apaga o SG existente e então cria-o novamente. É a mesma lógica que usamos ao fazer DROP TABLE IF EXISTS antes de um CREATE TABLE em um banco de dados relacional. 
 #   AVISO DISCIPLINAR: A um observador externo e conhecedor das diretrizes gerais de programação do Insper, pode suscitar dúvidas quanto à consulta feita ao trabalho elaborado por franciol. Todavia, cabe ressaltar que essa visualização foi feita dentro de premissas permitidas e legais, diante do objetivo de aprendizagem para este projeto, que envolve uma etapa de pesquisa tanto em documentação quanto em projetos similares. Não por interpretação minha, mas por explícita autorização tanto do professor da disciplina quanto do autor do projeto anterior e, além disso, com a explícita inclusão dos créditos a todas as referências consultadas. Note que a pasta de referências contém extensas documentações e linhas de referências em references.txt. Todo esse material foi usado para embasar este projeto e de forma nenhuma constitui plágio ou infração às diretrizes de integridade intelectual do Insper. Antes de proceder à visualização desse material, foi discutido com o professor em detalhes sobre essa autorização, definindo o que está dentro da proposta do projeto e é considerado aceitável ou recomendável. Portanto, declaro que tudo está dentro das regras como deveria estar e que não foi cometida nenhuma desonestidade intelectual no processo de elaboração deste projeto, submetido à avaliação para a disciplina Computação em Nuvem em 3 de dezembro de 2021. Caso você seja um aluno lendo isto para fazer o projeto de uma disciplina, converse com seu professor antes de prosseguir a leitura para ter certeza que está tudo bem estar lendo isso. Caso contrário, não prossiga com a leitura.
-#   Até 26/11/2021, estava tendando primeiro criar os SGs para depois verificar as instâncias. Porém, me deparei com um problema inesperado. Ao rodar o programa pela segunda vez, ele não conseguia apagar o SG existente. De acordo com https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca, isso se deve à existência de uma instância que foi criada na última vez em que foi rodado. Para contornar isso, primeiro apagarei as instâncias existentes, usando uma adaptação prática do que consta na documentação do Boto3 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html.
+#   Até 26/11/2021, estava tendando primeiro criar os SGs para depois verificar as instâncias. Porém, me deparei com um problema inesperado. Ao rodar o programa pela segunda vez, ele não conseguia apagar o SG existente. De acordo com https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca, isso se deve à existência de uma instância que foi criada na última vez em que foi rodado. Para contornar isso, primeiro apagarei as instâncias existentes, usando uma adaptação prática do que consta na documentação do Boto3 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html. Porém, após isso, o problema persistiu. Em conversas com Henrique Mualem, ele sugeriu uma forma diferente de realizar o mesmo procedimento. Primeiro, pega-se as instâncias usando ec2.describe_instances() ao invés de ec2.instances.filter() como havia feito inicialmente, e então filtrar os dados desse dicionário. Além disso, não estava aguardando que a instância termine, pois era necessário aguardar e, por isso, estava dando erro. Passei então a usar esse método sugerido por ele a partir de 29/11/2021, que consiste, além do mencionado, no seguinte: descrever as instâncias e SGs existentes e então deletar as instâncias usando o SG que estamos querendo usar (assim, caso haja outra instância para alguma outra coisa, este código não atrapalha ela). Após fazer isso, aguardar cinco segundos e veificar se a instância foi encerrada, e caso não aguardar mais cinco segundos. Após confirmado o encerramento da instância, apaga-se o SG de interesse e então cria-se ele. Após, autorizar o Security Group e por fim criar a instância na forma como estava criando ele inicialmente seguindo o modo sugerido pelo KGP Talkie no seu vídeo tutorial. Farei isso abaixo.
 
 #APAGA INSTÂNCIAS DE OHIO
-ids = []
-instances = ec2_resource_us_east_2.instances.filter(
-    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
-for instance in instances:
-    ids.append(instance.id)
-ec2_resource_us_east_2.instances.filter(InstanceIds=ids).terminate()
+print("Apagando instâncias em Ohio")
+terminate = False
+instances = ec2_us_east_2.describe_instances()
+instances_amount = len(instances['Reservations'])
+existing_SG = ec2_us_east_2.describe_security_groups()['SecurityGroups']
+SG_amount = len(existing_SG)
+for i in range(SG_amount):
+    print("Apagando instâncias em Ohio")
+    try:
+        print("    Tentando apagar instâncias em Ohio")
+        instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+        if instances_SG == 'SG-US-EAST-2':
+            instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
+            ec2_us_east_2.terminate_instances(InstanceIds = [instance_id])
+            terminate = True
+            print("        Apagando uma instância")
+    except:
+        pass
+    
+while terminate:
+    time.sleep(5)
+    terminate = False
+    instances = ec2_us_east_2.describe_instances()
+    for i in range(SG_amount):
+        try:
+            instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+            if instances_SG == 'SG-US-EAST-2':
+                terminate = True
+                print("            Ainda apagando uma instância")
+        except:
+            pass
+    time.sleep(5)
+print("        Apagou instâncias em Ohio")
+
 #apaga instâncias de Ohio
 
 #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
-ids = []
-instances = ec2_resource_us_east_1.instances.filter(
-    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
-for instance in instances:
-    ids.append(instance.id)
-ec2_resource_us_east_1.instances.filter(InstanceIds=ids).terminate()
+print("Apagando instâncias da Virgínia do Norte")
+terminate = False
+instances = ec2_us_east_1.describe_instances()
+instances_amount = len(instances['Reservations'])
+existing_SG = ec2_us_east_1.describe_security_groups()['SecurityGroups']
+SG_amount = len(existing_SG)
+for i in range(SG_amount):
+    try:
+        print("    Tentando apagar instâncias na Virgínia do Norte")
+        instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+        if instances_SG == 'SG-US-EAST-1':
+            instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
+            ec2_us_east_1.terminate_instances(InstanceIds = [instance_id])
+            terminate = True
+
+    except:
+        pass
+    
+while terminate:
+    time.sleep(5)
+    terminate = False
+    instances = ec2_us_east_1.describe_instances()
+    for i in range(SG_amount):
+        try:
+            instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+            if instances_SG == 'SG-US-EAST-1':
+                terminate = True
+                print("        Apagando uma instância")
+        except:
+            pass
+    time.sleep(5)
+print("        Apagou instâncias da Virgínia do Norte")
+
 #apaga instâncias de Virgínia do Norte
 
 #APAGA SECURITY GROUP EXISTENTE DE OHIO
+print("Apagando SG-US-EAST-2")
 existing_SG = ec2_us_east_2.describe_vpcs()
-vpc_id_2 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
-try:
-    resp = ec2_us_east_2.describe_security_groups()
-    for i in resp['SecurityGroups']:
-        if(i['GroupName'] == 'SG-US-EAST-2'):
-            us_east_2_security_group_id = i['GroupId']
-            resp = ec2_us_east_2.delete_security_group(GroupId=us_east_2_security_group_id)
-except ClientError as e:
-    print(e)
+vpc_id_2 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+print("    VpcId")
+print("        ", vpc_id_2)
+
+for i in range (SG_amount):
+    try:    
+        print("    Verificando apagar o Security Group")
+        print("        ", ec2_us_east_2.describe_security_groups()["SecurityGroups"][i]["GroupName"])
+        if (ec2_us_east_2.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-2"):
+            ec2_us_east_2.delete_security_group(GroupName = "SG-US-EAST-2")
+            print("            Apagou SGs de Ohio")
+            break
+    except:
+        print("        Não foi possível apagar o Security Group")
+
 #apaga security group existente de Ohio
 
-#APAGA SECURITY GROUP EXISTENTE DE VIRGÍNIA DO NORTE
+#APAGA SECURITY GROUP EXISTENTE DA VIRGÍNIA DO NORTE
+print("Apagando SG-US-EAST-1")
 existing_SG = ec2_us_east_1.describe_vpcs()
-vpc_id_1 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '') 
-try:
-    resp = ec2_us_east_1.describe_security_groups()
-    for i in resp['SecurityGroups']:
-        if(i['GroupName'] == 'SG-US-EAST-1'):
-            us_east_1_security_group_id = i['GroupId']
-            resp = ec2_us_east_1.delete_security_group(GroupId=us_east_1_security_group_id)
-except ClientError as e:
-    print(e)
-#apaga security group existente de Virgínia do Norte
+vpc_id_1 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+print("    VpcId")
+print("        ", vpc_id_1)
+
+for i in range (SG_amount):
+    try:    
+        print("    Verificando apagar o Security Group")
+        print("        ", ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"])
+        if (ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-1"):
+            ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
+            print("            Apagou SGs de Ohio")
+            break
+    except:
+        print("        Não foi possível apagar o Security Group")
+
+#apaga security group existente da Virgínia do Norte
+
 
 #CRIA NOVO SECURITY GROUP EM OHIO
+print("Criando novo SG em Ohio")
+
 try:
+    
     resp = ec2_us_east_2.create_security_group(GroupName='SG-US-EAST-2',
                                          Description='SG-US-EAST-2',
                                          VpcId=vpc_id_2)
     us_east_2_security_group_id = resp['GroupId']
+    print(us_east_2_security_group_id)
     print('Security Group Created %s in vpc %s.' % (us_east_2_security_group_id, vpc_id_2))
 
     data = ec2_us_east_2.authorize_security_group_ingress(
@@ -102,11 +180,13 @@ try:
              'ToPort': 22,
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
         ])
+    print("Criou SG em Ohio")
 except ClientError as e:
     print(e)
 #cria novo security group em Ohio
 
 #CRIA NOVO SECURITY GROUP EM VIRGÍNIA DO NORTE
+print("Criando SG na Virgínia do Norte")
 try:
     resp = ec2_us_east_1.create_security_group(GroupName='SG-US-EAST-1',
                                          Description='SG-US-EAST-1',
@@ -126,6 +206,7 @@ try:
              'ToPort': 22,
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
         ])
+    print("Criou SG na Virgínia do Norte")
 except ClientError as e:
     print(e)
 #cria novo security group em Virgínia do Norte
@@ -133,7 +214,8 @@ except ClientError as e:
 #   Agora, será criada um resource para poder lançar uma instância. Isso não é de forma alguma um desvio do que foi escrito alguns parágrafos atrás. Pesquisando sobre como lançar instâncias, vi que é necessário que se faça via resource. Porém, de acordo com a documentação do Boto3, é possível criar um client facilmente a partir de um resource posteriormente, usando conforme necessário. Este trecho foi baseado no tutorial de KGP Talkie. 
 
 #CRIA NOVA INSTÂNCIA EM OHIO
-instances = ec2_resource_us_east_2.create_instances(
+print("Criando nova instância em Ohio")
+instances_2 = ec2_resource_us_east_2.create_instances(
     ImageId = 'ami-020db2c14939a8efb', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
     MinCount = 1,
     MaxCount = 1,
@@ -143,7 +225,7 @@ instances = ec2_resource_us_east_2.create_instances(
         {
             'DeviceName' : "/dev/xvda",
             'Ebs' :{
-                'DeleteOnTermination': False,
+                'DeleteOnTermination': True,
                 'VolumeSize': 20
             }
         }
@@ -151,11 +233,13 @@ instances = ec2_resource_us_east_2.create_instances(
     SecurityGroups = ['SG-US-EAST-2']
 
 )
+print("Criou nova instância em Ohio")
 #cria nova instância em Ohio
 
 
 #CRIA NOVA INSTÂNCIA EM EM VIRGÍNIA DO NORTE
-instances = ec2_resource_us_east_1.create_instances(
+print("Crianodo nova instância na Virgínia do Norte")
+instances_1 = ec2_resource_us_east_1.create_instances(
     ImageId = 'ami-0279c3b3186e54acd', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
     MinCount = 1,
     MaxCount = 1,
@@ -165,7 +249,7 @@ instances = ec2_resource_us_east_1.create_instances(
         {
             'DeviceName' : "/dev/xvda",
             'Ebs' :{
-                'DeleteOnTermination': False,
+                'DeleteOnTermination': True,
                 'VolumeSize': 20
             }
         }
@@ -173,4 +257,5 @@ instances = ec2_resource_us_east_1.create_instances(
     SecurityGroups = ['SG-US-EAST-1']
 
 )
+print(("Criou nova instância na Virgínia do Norte"))
 #cria nova instância em Virgínia do Norte
