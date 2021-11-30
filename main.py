@@ -170,6 +170,7 @@ def deploy_us_east_2():
     print(instance.public_dns_name)
     public_dns_name: str = "ubuntu@" + instance.public_dns_name
     print(public_dns_name)
+    time.sleep(10)
     
     p = 22
     k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_2.pem")
@@ -179,12 +180,14 @@ def deploy_us_east_2():
 
     c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
     print ("connected")
-    commands = [ "/home/ubuntu/firstscript.sh", "/home/ubuntu/secondscript.sh" ]
+    print("CONFIGURANDO")
+    commands = [ "sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y; sudo apt install postgresql postgresql-contrib -y; git clone https://github.com/raulikeda/tasks; cd tasks; ./install.sh; sudo reboot" ]
     for command in commands:
         
         stdin , stdout, stderr = c.exec_command(command)
         
     c.close()
+    print("    Comandos de configuração enviados para a instância")
 
 def deploy_us_east_1():
     finishing = False
