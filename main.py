@@ -25,7 +25,7 @@ import time
 #imports
 
 #VARIÁVEIS GLOBAIS
-finishing =False
+finishing = False
 #variáveis globais
 
 
@@ -230,9 +230,12 @@ try:
     print("Criou SG na Virgínia do Norte")
 except ClientError as e:
     print(e)
+    
 #cria novo security group em Virgínia do Norte
 
 #   Agora, será criada um resource para poder lançar uma instância. Isso não é de forma alguma um desvio do que foi escrito alguns parágrafos atrás. Pesquisando sobre como lançar instâncias, vi que é necessário que se faça via resource. Porém, de acordo com a documentação do Boto3, é possível criar um client facilmente a partir de um resource posteriormente, usando conforme necessário. Este trecho foi baseado no tutorial de KGP Talkie. 
+
+us_east_1_security_group_id = "sg-091a1d3795fe21e61"
 
 #CRIA NOVA INSTÂNCIA EM OHIO
 print("Criando nova instância em Ohio")
