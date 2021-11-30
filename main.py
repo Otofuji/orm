@@ -50,7 +50,7 @@ print("Instâncias existentes em Ohio")
 print("    ", instances_amount)
 existing_SG = ec2_us_east_2.describe_security_groups()['SecurityGroups']
 SG_amount = len(existing_SG)
-for i in range(SG_amount):
+for i in range(instances_amount):
     print("Instâncias em Ohio")
     try:
         print("    Tentando apagar instâncias em Ohio")
@@ -59,7 +59,7 @@ for i in range(SG_amount):
             instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
             ec2_us_east_2.terminate_instances(InstanceIds = [instance_id])
             finishing = True
-            print("        Apagando uma instância")
+            print("        Apagando uma instância em Ohio")
     except:
         pass
     
@@ -67,12 +67,12 @@ while finishing:
     time.sleep(5)
     finishing = False
     instances = ec2_us_east_2.describe_instances()
-    for i in range(SG_amount):
+    for i in range(instances_amount):
         try:
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
             if instances_SG == 'SG-US-EAST-2':
                 finishing = True
-                print("            Aguarde o término da instância")
+                print("            Aguarde o término da instância em Ohio")
         except:
             pass
     time.sleep(5)
@@ -88,8 +88,8 @@ print("Instâncias existentes na Virgínia do Norte")
 print("    ", instances_amount)
 existing_SG = ec2_us_east_1.describe_security_groups()['SecurityGroups']
 SG_amount = len(existing_SG)
-for i in range(SG_amount):
-    print("Instâncias na Virgínia do Norte")
+for i in range(instances_amount):
+    print("Instâncias em Virgínia do Norte")
     try:
         print("    Tentando apagar instâncias na Virgínia do Norte")
         instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
@@ -97,7 +97,7 @@ for i in range(SG_amount):
             instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
             ec2_us_east_1.terminate_instances(InstanceIds = [instance_id])
             finishing = True
-            print("        Apagando uma instância")
+            print("        Apagando uma instância na Virgínia do Norte")
     except:
         pass
     
@@ -105,12 +105,12 @@ while finishing:
     time.sleep(5)
     finishing = False
     instances = ec2_us_east_1.describe_instances()
-    for i in range(SG_amount):
+    for i in range(instances_amount):
         try:
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
             if instances_SG == 'SG-US-EAST-1':
                 finishing = True
-                print("            Aguarde o término da instância")
+                print("            Aguarde o término da instância na Virgínia do Norte")
         except:
             pass
     time.sleep(5)
@@ -263,23 +263,28 @@ print("Criou nova instância em Ohio")
 
 #CRIA NOVA INSTÂNCIA EM EM VIRGÍNIA DO NORTE
 print("Crianodo nova instância na Virgínia do Norte")
-instances_1 = ec2_resource_us_east_1.create_instances(
-    ImageId = 'ami-0279c3b3186e54acd', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
-    MinCount = 1,
-    MaxCount = 1,
-    InstanceType = 't2.micro',
-    KeyName = 'KeyName',
-    BlockDeviceMappings = [
-        {
-            'DeviceName' : "/dev/xvda",
-            'Ebs' :{
-                'DeleteOnTermination': True,
-                'VolumeSize': 20
+try:
+    instances_1 = ec2_resource_us_east_1.create_instances(
+        ImageId = 'ami-0279c3b3186e54acd', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
+        MinCount = 1,
+        MaxCount = 1,
+        InstanceType = 't2.micro',
+        KeyName = 'KeyName',
+        BlockDeviceMappings = [
+            {
+                'DeviceName' : "/dev/xvda",
+                'Ebs' :{
+                    'DeleteOnTermination': True,
+                    'VolumeSize': 20
+                }
             }
-        }
-    ],
-    SecurityGroups = ['SG-US-EAST-1']
+        ],
+        SecurityGroups = ['SG-US-EAST-1']
 
-)
-print(("Criou nova instância na Virgínia do Norte"))
+    )
+    print(("Criou nova instância na Virgínia do Norte"))
+except:
+    print("VIRGINIA DANDO PAU DE NOVO")
+    pass
 #cria nova instância em Virgínia do Norte
+
