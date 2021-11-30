@@ -13,3 +13,4 @@ https://stackoverflow.com/questions/89228/how-to-execute-a-program-or-call-a-sys
 https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
 https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html
+https://www.nops.io/how-to-delete-terminated-ec2-instances-in-aws/
