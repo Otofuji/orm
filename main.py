@@ -35,14 +35,10 @@ def deploy_us_east_2():
     
     finishing = False
 
-
     #CLIENTE E RECURSO
     ec2_us_east_2 = boto3.client('ec2', region_name = 'us-east-2')
     ec2_resource_us_east_2 = boto3.resource('ec2', region_name = 'us-east-2')
     #cliente e recurso
-
-
-
 
     #APAGA INSTÂNCIAS DE OHIO
     finishing = False
@@ -170,6 +166,11 @@ def deploy_us_east_2():
 
 
     #CONFIGURA A NOVA INSTÂNCIA 
+    instance_ip = ec2.describe_instances
+    print(instance_ip)
+    ssh_client = paramiko.client.SSHCLient()
+    client.load_system_host_keys()
+    #client.connect()
     #configura a nova instância 
 
 def deploy_us_east_1():
