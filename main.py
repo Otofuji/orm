@@ -29,7 +29,7 @@ from botocore.exceptions import ClientError
 import time
 #imports
 
-def deploy_us-east-2():
+def deploy_us_east_2():
     
     finishing = False
 
@@ -154,7 +154,7 @@ def deploy_us-east-2():
     print("Criou nova instância em Ohio")
     #cria nova instância em Ohio
 
-def deploy_us-east-1():
+def deploy_us_east_1():
     finishing = False
 
 
@@ -280,5 +280,5 @@ def deploy_us-east-1():
     print("Criou nova instância em Virgínia do Norte")
     #cria nova instância em Virgínia do Norte
 
-deploy_us-east-2()
-deploy_us_east-1()
+deploy_us_east_2()
+deploy_us_east_1()
