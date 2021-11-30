@@ -21,3 +21,9 @@ https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent.html
 https://serverfault.com/questions/509136/how-do-i-set-a-vpc-in-aws-to-default-vpc-true
 https://docs.paramiko.org/en/stable/api/client.html
 https://docs.paramiko.org/en/stable/
+https://stackoverflow.com/questions/34728477/retrieving-public-dns-of-ec2-instance-with-boto3
+https://careerkarma.com/blog/python-concatenate-strings/
+https://stackoverflow.com/questions/49495378/python-paramiko-socket-gaierror-errno-11001-getaddrinfo-failed
+https://gist.github.com/batok/2352501
+https://programmerah.com/solved-socket-gaierror-errno-8-nodename-nor-servname-provided-or-not-known-32210/
+https://stackoverflow.com/questions/46264064/paramiko-ssh-connection-error-socket-gaierror-errno-8-nodename-nor-servname

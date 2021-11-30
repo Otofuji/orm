@@ -44,20 +44,17 @@ def deploy_us_east_2():
     finishing = False
     instances = ec2_us_east_2.describe_instances()
     instances_amount = len(instances['Reservations'])
-    print("Instâncias existentes em Ohio")
-    print("    ", instances_amount)
     existing_SG = ec2_us_east_2.describe_security_groups()['SecurityGroups']
     SG_amount = len(existing_SG)
     for i in range(instances_amount):
-        print("Instâncias em Ohio")
+        
         try:
-            print("    Tentando apagar instâncias em Ohio")
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
             if instances_SG == 'SG-US-EAST-2':
                 instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
                 ec2_us_east_2.terminate_instances(InstanceIds = [instance_id])
                 finishing = True
-                print("        Apagando uma instância em Ohio")
+                print("Apagando uma instância em Ohio")
         except:
             pass
         
@@ -70,7 +67,7 @@ def deploy_us_east_2():
                 instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
                 if instances_SG == 'SG-US-EAST-2':
                     finishing = True
-                    print("            Aguarde o término da instância em Ohio")
+                    print("    Aguarde o término da instância em Ohio")
             except:
                 pass
         time.sleep(5)
@@ -148,7 +145,7 @@ def deploy_us_east_2():
         MinCount = 1,
         MaxCount = 1,
         InstanceType = 't2.micro',
-        KeyName = 'KeyName',
+        KeyName = 'KeyName_us_east_2',
         BlockDeviceMappings = [
             {
                 'DeviceName' : "/dev/xvda",
@@ -166,12 +163,28 @@ def deploy_us_east_2():
 
 
     #CONFIGURA A NOVA INSTÂNCIA 
-    instance_ip = ec2.describe_instances
-    print(instance_ip)
-    ssh_client = paramiko.client.SSHCLient()
-    client.load_system_host_keys()
-    #client.connect()
-    #configura a nova instância 
+    instance = instances[0]
+    print("Aguardando a instância estar rodando")
+    instance.wait_until_running()
+    instance.load()
+    print(instance.public_dns_name)
+    public_dns_name: str = "ubuntu@" + instance.public_dns_name
+    print(public_dns_name)
+    
+    p = 22
+    k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_2.pem")
+    c = paramiko.SSHClient()
+    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print ("connecting")
+
+    c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
+    print ("connected")
+    commands = [ "/home/ubuntu/firstscript.sh", "/home/ubuntu/secondscript.sh" ]
+    for command in commands:
+        
+        stdin , stdout, stderr = c.exec_command(command)
+        
+    c.close()
 
 def deploy_us_east_1():
     finishing = False
@@ -312,5 +325,5 @@ def deploy_us_east_1():
     print("Criou nova instância em Virgínia do Norte")
     #cria nova instância em Virgínia do Norte
 
-#deploy_us_east_2()
+deploy_us_east_2()
 deploy_us_east_1()
