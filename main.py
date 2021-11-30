@@ -81,35 +81,38 @@ print("        Terminou instâncias em Ohio")
 #apaga instâncias de Ohio
 
 #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
-finishing = False
-instances = ec2_us_east_1.describe_instances()
-instances_amount = len(instances['Reservations'])
+finishing1 = False
+instances1 = ec2_us_east_1.describe_instances()
+instances_amount1 = len(instances1['Reservations'])
 print("Instâncias existentes na Virgínia do Norte")
-print("    ", instances_amount)
-existing_SG = ec2_us_east_1.describe_security_groups()['SecurityGroups']
-SG_amount = len(existing_SG)
-for i in range(instances_amount):
+print("    ", instances_amount1)
+existing_SG1 = ec2_us_east_1.describe_security_groups()['SecurityGroups']
+SG_amount1 = len(existing_SG1)
+for i in range(instances_amount1):
     print("Instâncias em Virgínia do Norte")
     try:
         print("    Tentando apagar instâncias na Virgínia do Norte")
-        instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-        if instances_SG == 'SG-US-EAST-1':
-            instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
-            ec2_us_east_1.terminate_instances(InstanceIds = [instance_id])
-            finishing = True
+        instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+        print("    VIRGINIA ME AJUDA")
+        print(instances_SG1)
+        if (instances_SG1 == 'SG-US-EAST-1'):
+            print("    TEM QUE APAGAR ESTE AQUI")
+            instance_id1 = instances1['Reservations'][i]['Instances'][0]['InstanceId']
+            ec2_us_east_1.terminate_instances(InstanceIds = [instance_id1])
+            finishing1 = True
             print("        Apagando uma instância na Virgínia do Norte")
     except:
         pass
     
-while finishing:
+while finishing1:
     time.sleep(5)
-    finishing = False
-    instances = ec2_us_east_1.describe_instances()
-    for i in range(instances_amount):
+    finishing1 = False
+    instances1 = ec2_us_east_1.describe_instances()
+    for i in range(instances_amount1):
         try:
-            instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-            if instances_SG == 'SG-US-EAST-1':
-                finishing = True
+            instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+            if instances_SG1 == 'SG-US-EAST-1':
+                finishing1 = True
                 print("            Aguarde o término da instância na Virgínia do Norte")
         except:
             pass
@@ -169,7 +172,7 @@ for i in range (SG_amount):
         print("        ", ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"])
         if (ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-1"):
             ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
-            print("            Apagou SG de Ohio")
+            print("            Apagou SG da Virgínia do Norte")
             break
     except:
         print("        Não foi possível apagar o Security Group")
