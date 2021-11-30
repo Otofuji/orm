@@ -309,7 +309,19 @@ def deploy_us_east_1():
         print(us_east_1_security_group_id)
         print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id))
 
-        data = ec2_us_east_1.authorize_security_group_ingress(
+        data_in = ec2_us_east_1.authorize_security_group_ingress(
+            GroupId=us_east_2_security_group_id,
+            IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 5000,
+                'ToPort': 5000,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 22,
+                'ToPort': 22,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+            ])
+        data_out = ec2_us_east_1.authorize_security_group_egress(
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
