@@ -14,3 +14,7 @@ https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-
 https://stackoverflow.com/questions/61236712/unable-to-delete-security-group-an-error-occurred-dependencyviolation-when-ca
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/migrationec2.html
 https://www.nops.io/how-to-delete-terminated-ec2-instances-in-aws/
+https://stackoverflow.com/questions/1186789/what-is-the-best-way-to-call-a-script-from-another-script
+https://stackoverflow.com/questions/67287259/invalid-type-parameter-class-str-valid-types-class-dict
+https://stackoverflow.com/questions/47034797/invalidinstanceid-an-error-occurred-invalidinstanceid-when-calling-the-sendco
+https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent.html
