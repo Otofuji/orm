@@ -28,22 +28,8 @@ def readme():
 import boto3
 from botocore.exceptions import ClientError
 import time
+import paramiko
 #imports
-
-def execute_commands_on_linux_instances(client, commands, instance_ids): #Função extraída na íntegra de https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
-    """Runs commands on remote linux instances
-    :param client: a boto/boto3 ssm client
-    :param commands: a list of strings, each one a command to execute on the instances
-    :param instance_ids: a list of instance_id strings, of the instances on which to execute the command
-    :return: the response from the send_command function (check the boto3 docs for ssm client.send_command() )
-    """
-
-    resp = client.send_command(
-        DocumentName="AWS-RunShellScript", # One of AWS' preconfigured documents
-        Parameters={'commands': commands},
-        InstanceIds=instance_ids,
-    )
-    return resp
 
 def deploy_us_east_2():
     
@@ -183,45 +169,8 @@ def deploy_us_east_2():
     #cria nova instância em Ohio
 
 
-    #CONFIGURA A NOVA INSTÂNCIA USANDO https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
-    print("Configurando a nova instância em Ohio")
-    ssm_client = boto3.client('ssm')
-
-
-
-
-
-    #################################
-
-    instances = ec2_us_east_2.describe_instances()
-    len_instances = len(instances['Reservations'])
-    for n in range(len_instances):
-        try:
-            instance_security_group = instances['Reservations'][n]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-            if instance_security_group == 'SG-US-EAST-2':
-                instanceid = instances['Reservations'][n]['Instances'][0]['InstanceId']
-        except:
-            pass
-
-    #################################
-
-
-    instance_id = []
-    instance_id.append(instanceid)
-    command = ['sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y']
-    loading = True
-    while loading:
-
-        try:
-            execute_commands_on_linux_instances(ssm_client, command, instance_id)
-            loading = False
-
-        except: 
-            print("    Aguarde inicialização da instância - não desligue o programa")
-            loading = True
-            time.sleep(30)
-    print("Instância rodando, configurando...")
-    #configura a nova instância usando https://stackoverflow.com/questions/42645196/how-to-ssh-and-run-commands-in-ec2-using-boto3
+    #CONFIGURA A NOVA INSTÂNCIA 
+    #configura a nova instância 
 
 def deploy_us_east_1():
     finishing = False
@@ -291,7 +240,8 @@ def deploy_us_east_1():
                 ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
                 print("            Apagou SG de Virgínia do Norte")
                 break
-        except:
+        except Exception as e:
+            print(e)
             print("        Não foi possível apagar o Security Group")
 
     #apaga security group existente de Virgínia do Norte
@@ -310,7 +260,7 @@ def deploy_us_east_1():
         print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id))
 
         data_in = ec2_us_east_1.authorize_security_group_ingress(
-            GroupId=us_east_2_security_group_id,
+            GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
                 'FromPort': 5000,
@@ -361,5 +311,5 @@ def deploy_us_east_1():
     print("Criou nova instância em Virgínia do Norte")
     #cria nova instância em Virgínia do Norte
 
-deploy_us_east_2()
+#deploy_us_east_2()
 deploy_us_east_1()

@@ -18,3 +18,6 @@ https://stackoverflow.com/questions/1186789/what-is-the-best-way-to-call-a-scrip
 https://stackoverflow.com/questions/67287259/invalid-type-parameter-class-str-valid-types-class-dict
 https://stackoverflow.com/questions/47034797/invalidinstanceid-an-error-occurred-invalidinstanceid-when-calling-the-sendco
 https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent.html
+https://serverfault.com/questions/509136/how-do-i-set-a-vpc-in-aws-to-default-vpc-true
+https://docs.paramiko.org/en/stable/api/client.html
+https://docs.paramiko.org/en/stable/
