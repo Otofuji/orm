@@ -80,64 +80,6 @@ print("        Terminou instâncias em Ohio")
 
 #apaga instâncias de Ohio
 
-#APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
-finishing1 = False
-instances1 = ec2_us_east_1.describe_instances()
-instances_amount1 = len(instances1['Reservations'])
-print("Instâncias existentes na Virgínia do Norte")
-print("    ", instances_amount1)
-existing_SG1 = ec2_us_east_1.describe_security_groups()['SecurityGroups']
-SG_amount1 = len(existing_SG1)
-for i in range(instances_amount1):
-    print("Instâncias em Virgínia do Norte")
-    try:
-        print("    Tentando apagar instâncias na Virgínia do Norte")
-        instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-        print("    VIRGINIA ME AJUDA")
-        print(instances_SG1)
-        if (instances_SG1 == 'SG-US-EAST-1'):
-            print("    TEM QUE APAGAR ESTE AQUI")
-            instance_id1 = instances1['Reservations'][i]['Instances'][0]['InstanceId']
-            ec2_us_east_1.terminate_instances(InstanceIds = [instance_id1])
-            finishing1 = True
-            print("        Apagando uma instância na Virgínia do Norte")
-    except:
-        pass
-    
-while finishing1:
-    time.sleep(5)
-    finishing1 = False
-    instances1 = ec2_us_east_1.describe_instances()
-    for i in range(instances_amount1):
-        try:
-            instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-            if instances_SG1 == 'SG-US-EAST-1':
-                finishing1 = True
-                print("            Aguarde o término da instância na Virgínia do Norte")
-        except:
-            pass
-    time.sleep(5)
-print("        Terminou instâncias na Virgínia do Norte")
-#apaga instâncias de Virgínia do Norte
-
-instances_remaining_1 = ec2_us_east_1.describe_instances()
-instances_remaining_2 = ec2_us_east_2.describe_instances()
-len_instances_remaining_1 = len(instances_remaining_1['Reservations'])
-len_instances_remaining_2 = len(instances_remaining_2['Reservations'])
-print("Instâncias remanscentes em Ohio")
-print("    ", len_instances_remaining_2)
-print("Instâncias remanescentes na Virgínia do Norte")
-print("    ", len_instances_remaining_1)
-
-SGs_remaining_1 = ec2_us_east_1.describe_security_groups()['SecurityGroups']
-SGs_remaining_2 = ec2_us_east_2.describe_security_groups()['SecurityGroups']
-len_SGs_remaining_1 = len(SGs_remaining_1)
-len_SGs_remaining_2 = len(SGs_remaining_2)
-print("SGs remanescentes em Ohio")
-print("    ", len_SGs_remaining_2)
-print("SGs remanescentes na Virgínia do Norte")
-print("    ", len_SGs_remaining_1)
-
 
 #APAGA SECURITY GROUP EXISTENTE DE OHIO
 print("Apagando SG-US-EAST-2")
@@ -159,25 +101,6 @@ for i in range (SG_amount):
 
 #apaga security group existente de Ohio
 
-#APAGA SECURITY GROUP EXISTENTE DA VIRGÍNIA DO NORTE
-print("Apagando SG-US-EAST-1")
-existing_SG = ec2_us_east_1.describe_vpcs()
-vpc_id_1 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
-print("    VpcId")
-print("        ", vpc_id_1)
-
-for i in range (SG_amount):
-    try:    
-        print("    Verificando apagar o Security Group")
-        print("        ", ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"])
-        if (ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-1"):
-            ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
-            print("            Apagou SG da Virgínia do Norte")
-            break
-    except:
-        print("        Não foi possível apagar o Security Group")
-
-#apaga security group existente da Virgínia do Norte
 
 
 #CRIA NOVO SECURITY GROUP EM OHIO
@@ -209,36 +132,9 @@ except ClientError as e:
     print(e)
 #cria novo security group em Ohio
 
-#CRIA NOVO SECURITY GROUP EM VIRGÍNIA DO NORTE
-print("Criando SG na Virgínia do Norte")
-try:
-    resp = ec2_us_east_1.create_security_group(GroupName='SG-US-EAST-1',
-                                         Description='SG-US-EAST-1',
-                                         VpcId=vpc_id_1)
-    us_east_1_security_group_id = resp['GroupId']
-    print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id_1))
 
-    data = ec2_us_east_1.authorize_security_group_ingress(
-        GroupId=us_east_1_security_group_id,
-        IpPermissions=[
-            {'IpProtocol': 'tcp',
-             'FromPort': 5000,
-             'ToPort': 5000,
-             'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-            {'IpProtocol': 'tcp',
-             'FromPort': 22,
-             'ToPort': 22,
-             'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
-        ])
-    print("Criou SG na Virgínia do Norte")
-except ClientError as e:
-    print(e)
-    
-#cria novo security group em Virgínia do Norte
 
 #   Agora, será criada um resource para poder lançar uma instância. Isso não é de forma alguma um desvio do que foi escrito alguns parágrafos atrás. Pesquisando sobre como lançar instâncias, vi que é necessário que se faça via resource. Porém, de acordo com a documentação do Boto3, é possível criar um client facilmente a partir de um resource posteriormente, usando conforme necessário. Este trecho foi baseado no tutorial de KGP Talkie. 
-
-us_east_1_security_group_id = "sg-091a1d3795fe21e61"
 
 #CRIA NOVA INSTÂNCIA EM OHIO
 print("Criando nova instância em Ohio")
@@ -291,3 +187,95 @@ except:
     pass
 #cria nova instância em Virgínia do Norte
 
+
+
+
+
+#APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
+finishing1 = False
+instances1 = ec2_us_east_1.describe_instances()
+instances_amount1 = len(instances1['Reservations'])
+print("Instâncias existentes na Virgínia do Norte")
+print("    ", instances_amount1)
+existing_SG1 = ec2_us_east_1.describe_security_groups()['SecurityGroups']
+SG_amount1 = len(existing_SG1)
+for i in range(instances_amount1):
+    print("Instâncias em Virgínia do Norte")
+    try:
+        print("    Tentando apagar instâncias na Virgínia do Norte")
+        instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+        print("    VIRGINIA ME AJUDA")
+        print(instances_SG1)
+        if (instances_SG1 == 'SG-US-EAST-1'):
+            print("    TEM QUE APAGAR ESTE AQUI")
+            instance_id1 = instances1['Reservations'][i]['Instances'][0]['InstanceId']
+            ec2_us_east_1.terminate_instances(InstanceIds = [instance_id1])
+            finishing1 = True
+            print("        Apagando uma instância na Virgínia do Norte")
+    except:
+        pass
+    
+while finishing1:
+    time.sleep(5)
+    finishing1 = False
+    instances1 = ec2_us_east_1.describe_instances()
+    for i in range(instances_amount1):
+        try:
+            instances_SG1 = instances1['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
+            if instances_SG1 == 'SG-US-EAST-1':
+                finishing1 = True
+                print("            Aguarde o término da instância na Virgínia do Norte")
+        except:
+            pass
+    time.sleep(5)
+print("        Terminou instâncias na Virgínia do Norte")
+#apaga instâncias de Virgínia do Norte
+
+
+#APAGA SECURITY GROUP EXISTENTE DA VIRGÍNIA DO NORTE
+print("Apagando SG-US-EAST-1")
+existing_SG = ec2_us_east_1.describe_vpcs()
+vpc_id_1 = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+print("    VpcId")
+print("        ", vpc_id_1)
+
+for i in range (SG_amount):
+    try:    
+        print("    Verificando apagar o Security Group")
+        print("        ", ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"])
+        if (ec2_us_east_1.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-US-EAST-1"):
+            ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
+            print("            Apagou SG da Virgínia do Norte")
+            break
+    except:
+        print("        Não foi possível apagar o Security Group")
+
+#apaga security group existente da Virgínia do Norte
+
+
+#CRIA NOVO SECURITY GROUP EM VIRGÍNIA DO NORTE
+print("Criando SG na Virgínia do Norte")
+try:
+    resp = ec2_us_east_1.create_security_group(GroupName='SG-US-EAST-1',
+                                         Description='SG-US-EAST-1',
+                                         VpcId=vpc_id_1)
+    us_east_1_security_group_id = resp['GroupId']
+    print('Security Group Created %s in vpc %s.' % (us_east_1_security_group_id, vpc_id_1))
+
+    data = ec2_us_east_1.authorize_security_group_ingress(
+        GroupId=us_east_1_security_group_id,
+        IpPermissions=[
+            {'IpProtocol': 'tcp',
+             'FromPort': 5000,
+             'ToPort': 5000,
+             'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+            {'IpProtocol': 'tcp',
+             'FromPort': 22,
+             'ToPort': 22,
+             'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+        ])
+    print("Criou SG na Virgínia do Norte")
+except ClientError as e:
+    print(e)
+    
+#cria novo security group em Virgínia do Norte
