@@ -147,13 +147,7 @@ def deploy_us_east_2():
     - sudo apt update;
     - sudo apt upgrade -y;
     - sudo apt autoremove -y;
-    - sudo apt install postgresql postgresql-contrib python3-pip -y;
-    - pip3 install flask requests django;
-    - git clone https://github.com/raulikeda/tasks;
-    - cd tasks;
-    - sed -i "s/node1/postgresIP/g" ./portfolio/settings.py;
-    - ./install.sh;
-    - sudo ufw allow 8080/tcp -y;
+    - sudo apt install postgresql postgresql-contrib -y;
     - sudo reboot;
     """)
 
@@ -194,7 +188,6 @@ def deploy_us_east_2():
     user_data = user_data.replace("postgresIP", postgresIP)
     time.sleep(30)
     
-    p = 22
     k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_2.pem")
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -219,7 +212,9 @@ def deploy_us_east_2():
     print("")
     print("")
 
-def deploy_us_east_1():
+    return instance.public_ip_address
+
+def deploy_us_east_1(us_east_2_ip):
     
     finishing = False
 
@@ -335,7 +330,7 @@ def deploy_us_east_1():
     - sudo apt update;
     - sudo apt upgrade -y;
     - sudo apt autoremove -y;
-    - sudo apt install postgresql postgresql-contrib python3-pip -y;
+    - sudo apt install python3-pip -y;
     - pip3 install flask requests django;
     - git clone https://github.com/raulikeda/tasks;
     - cd tasks;
@@ -379,10 +374,9 @@ def deploy_us_east_1():
     public_dns_name: str = "ubuntu@" + instance.public_dns_name
     print(public_dns_name)
     postgresIP = str(instance.public_ip_address)
-    user_data = user_data.replace("postgresIP", postgresIP)
+    user_data = user_data.replace("postgresIP", us_east_2_ip)
     time.sleep(30)
     
-    p = 22
     k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_1.pem")
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -407,6 +401,8 @@ def deploy_us_east_1():
     print("")
     print("")
 
+    return instance.public_ip_address
 
-deploy_us_east_2()
-deploy_us_east_1()
+
+us_east_2_ip = deploy_us_east_2()
+us_east_1_ip = deploy_us_east_1(us_east_2_ip)
