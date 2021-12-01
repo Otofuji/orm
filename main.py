@@ -142,16 +142,19 @@ def deploy_us_east_2():
     print("Criando nova instância em Ohio")
 
     user_data = str("""#cloud-config
-    cd /home/ubuntu;
-    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y;
-    sudo apt install postgresql postgresql-contrib python3-pip -y;
-    pip3 install flask requests django;
-    git clone https://github.com/raulikeda/tasks
-    cd tasks;
-    sed -i "s/node1/postgresIP/g" ./portfolio/settings.py
-    ./install.sh
-    sudo ufw allow 8080/tcp -y
-    sudo reboot
+    runcmd:
+    - cd /home/ubuntu;
+    - sudo apt update;
+    - sudo apt upgrade -y;
+    - sudo apt autoremove -y;
+    - sudo apt install postgresql postgresql-contrib python3-pip -y;
+    - pip3 install flask requests django;
+    - git clone https://github.com/raulikeda/tasks;
+    - cd tasks;
+    - sed -i "s/node1/postgresIP/g" ./portfolio/settings.py;
+    - ./install.sh;
+    - sudo ufw allow 8080/tcp -y;
+    - sudo reboot;
     """)
 
     print(user_data)
@@ -217,37 +220,29 @@ def deploy_us_east_2():
     print("")
 
 def deploy_us_east_1():
+    
     finishing = False
-
 
     #CLIENTE E RECURSO
     ec2_us_east_1 = boto3.client('ec2', region_name = 'us-east-1')
     ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
     #cliente e recurso
 
-
-
-
     #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
     finishing = False
     instances = ec2_us_east_1.describe_instances()
     instances_amount = len(instances['Reservations'])
-    print("Instâncias existentes em Virgínia do Norte")
-    print("    ", instances_amount)
     existing_SG = ec2_us_east_1.describe_security_groups()['SecurityGroups']
     SG_amount = len(existing_SG)
     for i in range(instances_amount):
-        print("Instâncias em Virgínia do Norte")
+        
         try:
-            print("    Tentando apagar instâncias em Virgínia do Norte")
             instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
-            print("    VIRGÍNIA DO NORTE ME AJUDA")
-            print(instances_SG)
             if instances_SG == 'SG-US-EAST-1':
                 instance_id = instances['Reservations'][i]['Instances'][0]['InstanceId']
                 ec2_us_east_1.terminate_instances(InstanceIds = [instance_id])
                 finishing = True
-                print("        Apagando uma instância em Virgínia do Norte")
+                print("Apagando uma instância em Virgínia do Norte")
         except:
             pass
         
@@ -260,7 +255,7 @@ def deploy_us_east_1():
                 instances_SG = instances['Reservations'][i]['Instances'][0]['NetworkInterfaces'][0]['Groups'][0]['GroupName']
                 if instances_SG == 'SG-US-EAST-1':
                     finishing = True
-                    print("            Aguarde o término da instância em Virgínia do Norte")
+                    print("    Aguarde o término da instância em Virgínia do Norte")
             except:
                 pass
         time.sleep(5)
@@ -284,8 +279,7 @@ def deploy_us_east_1():
                 ec2_us_east_1.delete_security_group(GroupName = "SG-US-EAST-1")
                 print("            Apagou SG de Virgínia do Norte")
                 break
-        except Exception as e:
-            print(e)
+        except:
             print("        Não foi possível apagar o Security Group")
 
     #apaga security group existente de Virgínia do Norte
@@ -334,12 +328,32 @@ def deploy_us_east_1():
 
     #CRIA NOVA INSTÂNCIA EM VIRGÍNIA DO NORTE
     print("Criando nova instância em Virgínia do Norte")
+
+    user_data = str("""#cloud-config
+    runcmd:
+    - cd /home/ubuntu;
+    - sudo apt update;
+    - sudo apt upgrade -y;
+    - sudo apt autoremove -y;
+    - sudo apt install postgresql postgresql-contrib python3-pip -y;
+    - pip3 install flask requests django;
+    - git clone https://github.com/raulikeda/tasks;
+    - cd tasks;
+    - sed -i "s/node1/postgresIP/g" ./portfolio/settings.py;
+    - ./install.sh;
+    - sudo ufw allow 8080/tcp -y;
+    - sudo reboot;
+    """)
+
+    print(user_data)
+
     instances = ec2_resource_us_east_1.create_instances(
         ImageId = 'ami-0279c3b3186e54acd', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
+        UserData = user_data,
         MinCount = 1,
         MaxCount = 1,
         InstanceType = 't2.micro',
-        KeyName = 'KeyName',
+        KeyName = 'KeyName_us_east_1',
         BlockDeviceMappings = [
             {
                 'DeviceName' : "/dev/xvda",
@@ -354,6 +368,45 @@ def deploy_us_east_1():
     )
     print("Criou nova instância em Virgínia do Norte")
     #cria nova instância em Virgínia do Norte
+
+
+    #CONFIGURA A NOVA INSTÂNCIA 
+    instance = instances[0]
+    print("Aguardando a instância estar rodando")
+    instance.wait_until_running()
+    instance.load()
+    print(instance.public_dns_name)
+    public_dns_name: str = "ubuntu@" + instance.public_dns_name
+    print(public_dns_name)
+    postgresIP = str(instance.public_ip_address)
+    user_data = user_data.replace("postgresIP", postgresIP)
+    time.sleep(30)
+    
+    p = 22
+    k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_1.pem")
+    c = paramiko.SSHClient()
+    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print ("connecting")
+
+    c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
+    print ("connected")
+    time.sleep(10)
+    print("CONFIGURANDO")
+    commands = ["echo paramiko"]
+    for command in commands:
+        
+        stdin , stdout, stderr = c.exec_command(command)
+        print("")
+        print(stdout.read())
+        print("")
+        print(stderr.read())
+        
+    c.close()
+    print("    Comandos de configuração enviados para a instância")
+    print("")
+    print("")
+    print("")
+
 
 deploy_us_east_2()
 deploy_us_east_1()
