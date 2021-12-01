@@ -27,3 +27,5 @@ https://stackoverflow.com/questions/49495378/python-paramiko-socket-gaierror-err
 https://gist.github.com/batok/2352501
 https://programmerah.com/solved-socket-gaierror-errno-8-nodename-nor-servname-provided-or-not-known-32210/
 https://stackoverflow.com/questions/46264064/paramiko-ssh-connection-error-socket-gaierror-errno-8-nodename-nor-servname
+https://flask.palletsprojects.com/en/2.0.x/
+https://blog.geekhunter.com.br/flask-framework-python/

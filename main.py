@@ -113,8 +113,8 @@ def deploy_us_east_2():
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
-                'FromPort': 5000,
-                'ToPort': 5000,
+                'FromPort': 5432,
+                'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 22,
@@ -125,8 +125,8 @@ def deploy_us_east_2():
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
-                'FromPort': 5000,
-                'ToPort': 5000,
+                'FromPort': 5432,
+                'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 22,
@@ -140,8 +140,25 @@ def deploy_us_east_2():
 
     #CRIA NOVA INSTÂNCIA EM OHIO
     print("Criando nova instância em Ohio")
+
+    user_data = str("""#cloud-config
+    cd /home/ubuntu;
+    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y;
+    sudo apt install postgresql postgresql-contrib python3-pip -y;
+    pip3 install flask requests django;
+    git clone https://github.com/raulikeda/tasks
+    cd tasks;
+    sed -i "s/node1/postgresIP/g" ./portfolio/settings.py
+    ./install.sh
+    sudo ufw allow 8080/tcp -y
+    sudo reboot
+    """)
+
+    print(user_data)
+
     instances = ec2_resource_us_east_2.create_instances(
         ImageId = 'ami-020db2c14939a8efb', #Ubuntu Server 18.04 LTS (HVM), SSD Volume Type 64 bits x86
+        UserData = user_data,
         MinCount = 1,
         MaxCount = 1,
         InstanceType = 't2.micro',
@@ -170,6 +187,8 @@ def deploy_us_east_2():
     print(instance.public_dns_name)
     public_dns_name: str = "ubuntu@" + instance.public_dns_name
     print(public_dns_name)
+    postgresIP = str(instance.public_ip_address)
+    user_data = user_data.replace("postgresIP", postgresIP)
     time.sleep(30)
     
     p = 22
@@ -180,8 +199,9 @@ def deploy_us_east_2():
 
     c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
     print ("connected")
+    time.sleep(10)
     print("CONFIGURANDO")
-    commands = [ "sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y; sudo apt install postgresql postgresql-contrib python3-dev libpq-dev python3-pip tmux -y; cd /home/ubuntu/; pip install django psycopg2 flask requests; git clone https://github.com/raulikeda/tasks; sudo reboot" ]
+    commands = ["echo paramiko"]
     for command in commands:
         
         stdin , stdout, stderr = c.exec_command(command)
@@ -287,8 +307,8 @@ def deploy_us_east_1():
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
-                'FromPort': 5000,
-                'ToPort': 5000,
+                'FromPort': 5432,
+                'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 22,
@@ -299,8 +319,8 @@ def deploy_us_east_1():
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
-                'FromPort': 5000,
-                'ToPort': 5000,
+                'FromPort': 5432,
+                'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 22,
