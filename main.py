@@ -115,6 +115,10 @@ def deploy_us_east_2():
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
                 'FromPort': 8080,
                 'ToPort': 8080,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
@@ -130,6 +134,10 @@ def deploy_us_east_2():
         data_out = ec2_us_east_2.authorize_security_group_egress(
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 8080,
                 'ToPort': 8080,
@@ -314,6 +322,10 @@ def deploy_us_east_1(us_east_2_ip):
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
                 'FromPort': 8080,
                 'ToPort': 8080,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
@@ -329,6 +341,10 @@ def deploy_us_east_1(us_east_2_ip):
         data_out = ec2_us_east_1.authorize_security_group_egress(
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 8080,
                 'ToPort': 8080,
@@ -447,25 +463,89 @@ def deploy_us_east_1(us_east_2_ip):
     
     print("            Instância no ar novamente após reinício do sistema - plenamente configurado")
     print("Criando AMI")
-    ami_image = ec2_us_east_1.create_image(
-        Name = 'ami-otofuji',
-        InstanceId = instance.id,
-        NoReboot = False,
-        TagSpecifications=[{
-            "ResourceType": "image",
-            "Tags": [{
-                "Key": "Name",
-                "Value": "DMI"
+    try:
+        ami_image = ec2_us_east_1.create_image(
+            Name = 'ami-otofuji',
+            InstanceId = instance.id,
+            NoReboot = False,
+            TagSpecifications=[{
+                "ResourceType": "image",
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": "DMI"
+                }]
             }]
-        }]
+        )
+
+        ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
+        ami_new_name = 'ami-otofuji'
+        print("    AMI criada")
+    except:
+        ami_new_name: str = 'ami-otofuji-redundance-' + instance.id
+        ami_image = ec2_us_east_1.create_image(
+            Name = ami_new_name,
+            InstanceId = instance.id,
+            NoReboot = False,
+            TagSpecifications=[{
+                "ResourceType": "image",
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": "DMI"
+                }]
+            }]
+        )
+
+        ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
+        print("    AMI criada (redundance mode)")
+
+    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id
+
+def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
+    #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
+
+    elastic_load_balancer = boto3.client('elb')
+    response = elastic_load_balancer.create_load_balancer(
+        Listeners = [
+            {
+                'Protocol': 'HTTP',
+                'LoadBalancerPort': 80,
+                'InstancePort': 80,
+            },
+        
+        ],
+        SecurityGroups = [
+            us_east_1_security_group_id
+        ],    
+        LoadBalancerName = 'otofuji-lb',
     )
 
-    ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
-    print("    AMI criada")
-    
+    response = elastic_load_balancer.configure_health_check(
+        LoadBalancerName = 'otofuji-lb',
+        HealthCheck = {
+            'Target': 'HTTP:80',
+            'Interval': 12,
+            'Timeout': 10,
+            'UnhealthyThreshold': 3,
+            'HealthyThreshold': 2
+        }
+    )
 
-    return ami_image['ImageId']
+    autoscaling = boto3.client('autoscaling')
+    response = autoscaling.create_launch_configuration(
+        LanchConfigurationName = 'autoscaling',
+        ImageId = ami_id,
+        SecurityGroups = [
+            us_east_1_security_group_id
+        ],
+        InstanceId = instance_id,
+        InstanceType = 't2.micro',
+        InstanceMonitoring = {
+            'Enabled': True
+        },
+    )
+
+    return None
 
 
 us_east_2_ip = deploy_us_east_2()
-ami_id = deploy_us_east_1(us_east_2_ip)
+ami_id, instance_id, ami_new_name, us_east_2_security_group_id = deploy_us_east_1(us_east_2_ip)
