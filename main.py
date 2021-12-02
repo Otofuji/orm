@@ -375,7 +375,7 @@ def deploy_us_east_1(us_east_2_ip):
     - sudo apt upgrade -y;
     - sudo apt autoremove -y;
     - sudo apt install python3-pip -y;
-    - pip3 install flask requests django;
+    - pip3 install flask requests django stresspy;
     - git clone https://github.com/raulikeda/tasks;
     - cd tasks;
     - sed -i "s/node1/postgresIP/g" ./portfolio/settings.py;
@@ -548,7 +548,7 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
 
     autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
-        LanchConfigurationName = 'project_lc',
+        LaunchConfigurationName = 'project_lc',
         ImageId = ami_id,
         SecurityGroups = [
             us_east_1_security_group_id
