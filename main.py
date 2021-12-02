@@ -548,7 +548,7 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
 
     autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
-        LanchConfigurationName = 'autoscaling',
+        LanchConfigurationName = 'project_lc',
         ImageId = ami_id,
         SecurityGroups = [
             us_east_1_security_group_id
@@ -563,7 +563,7 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
         ##Create auto scaling groups
 
     response = autoscaling.create_auto_scaling_group(
-    AutoScalingGroupName='project_asg',
+    AutoScalingGroupName='project_lc',
     LaunchConfigurationName='project_lc',
     MinSize=2,
     MaxSize=6,
