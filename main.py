@@ -215,7 +215,7 @@ def deploy_us_east_2():
     print ("connected")
     time.sleep(10)
     print("CONFIGURANDO")
-    commands = ["echo paramiko"]
+    commands = [""]
     for command in commands:
         
         stdin , stdout, stderr = c.exec_command(command)
@@ -427,12 +427,45 @@ def deploy_us_east_1(us_east_2_ip):
             pass
 
     print("    Instância configurada ")
+    print("        REBOOT - aguarde instância estar no ar novamente")
     print("")
     print("")
     print("")
 
-    return instance.public_ip_address
+    time.sleep(21)
+    rebooting = True
+    while setting:
+        try:
+
+            c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
+                
+            c.close()
+
+            rebooting = False
+        except:
+            pass
+    
+    print("            Instância no ar novamente após reinício do sistema - plenamente configurado")
+    print("Criando AMI")
+    ami_image = ec2_us_east_1.create_image(
+        Name = 'ami-otofuji',
+        InstanceId = instance.id,
+        NoReboot = False,
+        TagSpecifications=[{
+            "ResourceType": "image",
+            "Tags": [{
+                "Key": "Name",
+                "Value": "DMI"
+            }]
+        }]
+    )
+
+    ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
+    print("    AMI criada")
+    
+
+    return ami_image['ImageId']
 
 
 us_east_2_ip = deploy_us_east_2()
-us_east_1_ip = deploy_us_east_1(us_east_2_ip)
+ami_id = deploy_us_east_1(us_east_2_ip)
