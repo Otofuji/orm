@@ -156,6 +156,14 @@ def deploy_us_east_2():
     - sudo apt upgrade -y;
     - sudo apt autoremove -y;
     - sudo apt install postgresql postgresql-contrib -y;
+    - sudo su - postgres;
+    - sudo -u postgres psql -c "CREATE USER cloud WITH PASSWORD 'cloud';";
+    - sudo -u postgres psql -c "CREATE DATABASE tasks;";
+    - sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tasks TO cloud;";
+    - sudo echo "listen_addresses = '*'" >> /etc/postgresql/10/main/postgresql.conf;
+    - sudo echo "host all all 0.0.0.0/0 trust" >> /etc/postgresql/10/main/pg_hba.conf;
+    - sudo ufw allow 5432/tcp -y
+    - sudo systemctl restart postgresql
     - sudo reboot;
     """)
 
@@ -355,7 +363,7 @@ def deploy_us_east_1(us_east_2_ip):
     - sudo ufw allow 8080/tcp -y;
     - sudo reboot;
     """)
-
+    user_data = user_data.replace("postgresIP", str(us_east_2_ip))
     print(user_data)
 
     instances = ec2_resource_us_east_1.create_instances(
@@ -389,8 +397,9 @@ def deploy_us_east_1(us_east_2_ip):
     print(instance.public_dns_name)
     public_dns_name: str = "ubuntu@" + instance.public_dns_name
     print(public_dns_name)
-    postgresIP = str(instance.public_ip_address)
-    user_data = user_data.replace("postgresIP", us_east_2_ip)
+    print("PostgreSQL IP")
+    print("    ", us_east_2_ip)
+    user_data = user_data.replace("postgresIP", str(us_east_2_ip))
     time.sleep(30)
     
     k = paramiko.RSAKey.from_private_key_file("/Users/otofuji/.ssh/KeyName_us_east_1.pem")
@@ -402,17 +411,20 @@ def deploy_us_east_1(us_east_2_ip):
     print ("connected")
     time.sleep(10)
     print("CONFIGURANDO")
-    commands = ["echo paramiko"]
-    for command in commands:
-        
-        stdin , stdout, stderr = c.exec_command(command)
-        print("")
-        print(stdout.read())
-        print("")
-        print(stderr.read())
-        
     c.close()
-    print("    Comandos de configuração enviados para a instância")
+
+    setting = True
+    while setting:
+        try:
+
+            c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
+                
+            c.close()
+        except:
+            setting = False
+            pass
+
+    print("    Instância configurada ")
     print("")
     print("")
     print("")
