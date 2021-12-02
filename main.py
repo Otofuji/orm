@@ -82,6 +82,7 @@ def deploy_us_east_2():
     print("Apagando SG-US-EAST-2")
     existing_SG = ec2_us_east_2.describe_vpcs()
     vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+    vpc = existing_SG.get('Vpcs', [{}])[0]
     print("    VpcId Ohio")
     print("        ", vpc_id)
 
@@ -289,6 +290,7 @@ def deploy_us_east_1(us_east_2_ip):
     print("Apagando SG-US-EAST-1")
     existing_SG = ec2_us_east_1.describe_vpcs()
     vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+    vpc = existing_SG.get('Vpcs', [{}])[0]
     print("    VpcId Virgínia do Norte")
     print("        ", vpc_id)
 
@@ -503,26 +505,40 @@ def deploy_us_east_1(us_east_2_ip):
 def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
 
-    elastic_load_balancer = boto3.client('elb')
+    elastic_load_balancer = boto3.client('elb', region_name='us-east-1')
+    print("Security Group ID: ", us_east_1_security_group_id)
+    print("    CRIANDO LOAD BALANCER")
     response = elastic_load_balancer.create_load_balancer(
+        LoadBalancerName = 'otofuji-lb',
         Listeners = [
             {
                 'Protocol': 'HTTP',
                 'LoadBalancerPort': 80,
+                'InstanceProtocol': 'HTTP',
                 'InstancePort': 80,
             },
         
         ],
+        AvailabilityZones=[
+            'us-east-1a','us-east-1b','us-east-1c','us-east-1d','us-east-1e','us-east-1f'
+        ],
+
         SecurityGroups = [
             us_east_1_security_group_id
-        ],    
-        LoadBalancerName = 'otofuji-lb',
+        ],
+        Tags = [
+            {
+                'Key': 'Name',
+                'Value': 'ProjetoCloud'
+            },
+        ]    
+        
     )
 
     response = elastic_load_balancer.configure_health_check(
         LoadBalancerName = 'otofuji-lb',
         HealthCheck = {
-            'Target': 'HTTP:80',
+            'Target': 'HTTP:80/admin',
             'Interval': 12,
             'Timeout': 10,
             'UnhealthyThreshold': 3,
@@ -630,4 +646,5 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
 
 
 us_east_2_ip = deploy_us_east_2()
-ami_id, instance_id, ami_new_name, us_east_2_security_group_id = deploy_us_east_1(us_east_2_ip)
+ami_id, instance_id, ami_new_name, us_east_1_security_group_id = deploy_us_east_1(us_east_2_ip)
+aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id)
