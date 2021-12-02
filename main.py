@@ -113,6 +113,10 @@ def deploy_us_east_2():
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
                 'FromPort': 5432,
                 'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
@@ -124,6 +128,10 @@ def deploy_us_east_2():
         data_out = ec2_us_east_2.authorize_security_group_egress(
             GroupId=us_east_2_security_group_id,
             IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 5432,
                 'ToPort': 5432,
@@ -296,6 +304,10 @@ def deploy_us_east_1(us_east_2_ip):
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
                 {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
                 'FromPort': 5432,
                 'ToPort': 5432,
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
@@ -307,6 +319,10 @@ def deploy_us_east_1(us_east_2_ip):
         data_out = ec2_us_east_1.authorize_security_group_egress(
             GroupId=us_east_1_security_group_id,
             IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
                 {'IpProtocol': 'tcp',
                 'FromPort': 5432,
                 'ToPort': 5432,
