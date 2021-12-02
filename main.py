@@ -544,6 +544,88 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
         },
     )
 
+        ##Create auto scaling groups
+
+    response = autoscaling.create_auto_scaling_group(
+    AutoScalingGroupName='project_asg',
+    LaunchConfigurationName='project_lc',
+    MinSize=2,
+    MaxSize=6,
+    LoadBalancerNames=[
+        'projectelb',
+    ],
+    HealthCheckType='ELB',
+    HealthCheckGracePeriod=300,
+    VPCZoneIdentifier='subnet-83dd6ade,subnet-28e79963'
+    )
+    ##Autoscaling Policies
+    response = autoscaling.put_scaling_policy(
+    AutoScalingGroupName='project_asg',
+    PolicyName='HighCPUUtilization',
+    AdjustmentType='PercentChangeInCapacity',
+    ScalingAdjustment=65,
+    Cooldown=60,
+    )
+    response = client_as.put_scaling_policy(
+    AutoScalingGroupName='project_asg',
+    PolicyName='LowCPUUtilization',
+    AdjustmentType='PercentChangeInCapacity',
+    ScalingAdjustment=20,
+    Cooldown=60,
+    )
+
+        #########CLOUDWATCH METRICS#############
+    client_cw = boto3.client('cloudwatch')
+    scaledown = client_cw.put_metric_alarm(
+        AlarmName='scaledown',
+        AlarmDescription='High CPU Utilization',
+        ActionsEnabled=True,
+        MetricName='CPUUtilization',
+        Namespace='ELB',
+        Statistic='Average',
+        Dimensions=[
+            {
+                'Name': 'InstanceId',
+                'Value': 'i-0bb3fcb4396da630b'
+            },
+        ],
+        Period=60,
+        Unit='Seconds',
+        EvaluationPeriods=1,
+        Threshold=65.0,
+        ComparisonOperator='GreaterThanOrEqualToThreshold',
+    )
+
+
+    scaleup = client_cw.put_metric_alarm(
+        AlarmName='scaleup',
+        AlarmDescription='Low CPU Utilization',
+        ActionsEnabled=True,
+        MetricName='CPUUtilization',
+        Namespace='ELB',
+        Statistic='Average',
+        Dimensions=[
+            {
+                'Name': 'InstanceId',
+                'Value': 'i-0bb3fcb4396da630b'
+            }
+        ],
+        Period=60,
+        Unit='Seconds',
+        EvaluationPeriods=2,
+        Threshold=20.0,
+        ComparisonOperator='LessThanThreshold'   
+    )	
+	
+    response = autoscaling.attach_load_balancers(
+        AutoScalingGroupName='project_asg',
+        LoadBalancerNames=[
+            'projectelb',
+        ],
+    )
+
+
+
     return None
 
 
