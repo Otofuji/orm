@@ -249,6 +249,24 @@ def deploy_us_east_1(us_east_2_ip):
     ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     #cliente e recurso
+     #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
+    try:
+        existing_lb = elastic_load_balancer.describe_load_balancers()
+        lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
+        print("lb_arn")
+        print("    ", lb_arn)
+        free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
+        print(free_of_lb)
+        waiter = elastic_load_balancer.get_waiter('load_balancers_deleted') #Esse waiter foi dica do Helio Paiva
+        print("    LOAD BALANCER APAGADO")
+        time.sleep(60)
+    except Exception as e:
+        print("")
+        print("")
+        print(e)
+        print("")
+        print("")
+    #apaga load balancer Virgínia do Norte
 
     #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
     finishing = False
@@ -285,25 +303,7 @@ def deploy_us_east_1(us_east_2_ip):
 
     #apaga instâncias de Virgínia do Norte
 
-    #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
-    try:
-        existing_lb = elastic_load_balancer.describe_load_balancers()
-        lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
-        print("lb_arn")
-        print("    ", lb_arn)
-        free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
-        print(free_of_lb)
-        waiter = elastic_load_balancer.get_waiter('load_balancers_deleted') #Esse waiter foi dica do Helio Paiva
-        print("    LOAD BALANCER APAGADO")
-        time.sleep(30)
-    except Exception as e:
-        print("")
-        print("")
-        print(e)
-        print("")
-        print("")
-    #apaga load balancer Virgínia do Norte
-
+   
 
     #APAGA SECURITY GROUP EXISTENTE DE VIRGÍNIA DO NORTE
     print("Apagando SG-US-EAST-1")
@@ -526,6 +526,85 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
     print("Security Group ID: ", us_east_1_security_group_id)
     print("    CRIANDO LOAD BALANCER")
 
+    #APAGA SECURITY GROUP EXISTENTE DE LOAD BALANCER
+    print("Apagando SG-US-EAST-1")
+    existing_SG = elastic_load_balancer.describe_vpcs()
+    vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
+    print("    VpcId LOAD BALANCER")
+    print("        ", vpc_id)
+
+    for i in range (SG_amount):
+        try:    
+            print("    Verificando apagar o Security Group LOAD BALANCER")
+            print("        ", elastic_load_balancer.describe_security_groups()["SecurityGroups"][i]["GroupName"])
+            if (elastic_load_balancer.describe_security_groups()["SecurityGroups"][i]["GroupName"] == "SG-LOAD-BALANCER"):
+                elastic_load_balancer.delete_security_group(GroupName = "SG-LOAD-BALANCER")
+                print("            Apagou SG de load balancer")
+                break
+        except:
+            print("        Não foi possível apagar o Security Group LOAD BALANCER")
+
+    #apaga security group existente de load balancer
+
+
+    #CRIA NOVO SECURITY GROUP EM LOAD BALANCER
+    print("Criando novo SG em Load Balancer")
+
+    try:
+        
+        resp = elastic_load_balancer.create_security_group(GroupName='SG-LOAD-BALANCER',
+                                            Description='SG-LOAD-BALANCER',
+                                            VpcId=vpc_id)
+        load_balancer_security_group_id = resp['GroupId']
+        print(load_balancer_security_group_id)
+        print('Security Group Created %s in vpc %s.' % (load_balancer_security_group_id, vpc_id))
+
+        data_in = elastic_load_balancer.authorize_security_group_ingress(
+            GroupId=load_balancer_security_group_id,
+            IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 5432,
+                'ToPort': 5432,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 22,
+                'ToPort': 22,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+            ])
+        data_out = elastic_load_balancer.authorize_security_group_egress(
+            GroupId=load_balancer_security_group_id,
+            IpPermissions=[
+                {'IpProtocol': 'tcp',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 8080,
+                'ToPort': 8080,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 5432,
+                'ToPort': 5432,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                'FromPort': 22,
+                'ToPort': 22,
+                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+            ])
+        print("Criou SG em LOAD BALANCER")
+    except ClientError as e:
+        print(e)
+    #cria novo security group em LOAD BALANCER
+
+
     response = elastic_load_balancer.create_load_balancer(
         Name='otofuji-lb',
         Subnets=[
@@ -542,7 +621,7 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
             us_east_1_security_group_id,
         ],
         #Scheme='internet-facing'|'internal',
-        Scheme='internet-facing',
+        Scheme='internet-facing', #dica do Eduardo Marossi
         Tags=[
             {
                 'Key': 'Name',
@@ -563,10 +642,13 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
     print("")
 
     create_tg_response = elastic_load_balancer.create_target_group(Name='target',
-                                                        Protocol='TCP',
-                                                        Port=80,
+                                                        Protocol='HTTP',
+                                                        Port=8080,
                                                         VpcId = vpc_id,
-                                                        HealthCheckPort='8080')
+                                                        TargetType = 'instance',
+                                                        HealthCheckPort='8080',
+                                                        HealthCheckPath = '/admin/',
+                                                        HealthCheckProtocol = 'HTTP')
 
     existing_lb = elastic_load_balancer.describe_load_balancers()
     lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
