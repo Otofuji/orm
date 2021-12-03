@@ -542,13 +542,14 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
             us_east_1_security_group_id,
         ],
         #Scheme='internet-facing'|'internal',
+        Scheme='internet-facing',
         Tags=[
             {
                 'Key': 'Name',
                 'Value': 'ProjetoCloud'
             },
         ],
-        Scheme='internal',
+        
         Type='application',
         IpAddressType='ipv4',
         #CustomerOwnedIpv4Pool='string'
