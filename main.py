@@ -287,7 +287,11 @@ def deploy_us_east_1(us_east_2_ip):
 
     #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
     try:
-        free_of_lb = elastic_load_balancer.delete_load_balancers(Names='otofuji-lb')
+        existing_lb = elastic_load_balancer.describe_load_balancers()
+        lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
+        print("lb_arn")
+        print("    ", lb_arn)
+        free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
         print(free_of_lb)
         print("    LOAD BALANCER APAGADO")
     except Exception as e:
