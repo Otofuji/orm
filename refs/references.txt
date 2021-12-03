@@ -33,3 +33,4 @@ https://github.com/awsdocs/aws-doc-sdk-examples/tree/main/python/example_code
 https://github.com/miztiik/AWS-Demos/blob/master/How-To/setup-autoscaling-with-boto3/setup-autoscaling-with-boto3
 https://github.com/aish11/cc-auto-scaling-boto3
 https://pypi.org/project/stressypy/
+https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/elbv2.html
