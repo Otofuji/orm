@@ -303,11 +303,6 @@ def deploy_us_east_1(us_east_2_ip):
     print("Apagando SG-US-EAST-1")
     existing_SG = ec2_us_east_1.describe_vpcs()
     vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
-    vpc = ec2_us_east_1.create_subnet(
-        AvailabilityZone = 'us-east-1a',
-        CidrBlock = '0.0.0.0/0',
-        VpcId = vpc_id
-    )
     print("    VpcId Virgínia do Norte")
     print("        ", vpc_id)
 
@@ -517,7 +512,7 @@ def deploy_us_east_1(us_east_2_ip):
         ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
         print("    AMI criada (redundance mode)")
 
-    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id
+    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id
 
 def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
@@ -661,7 +656,7 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
 
     return None
 
-def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id):
+def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
 
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
@@ -671,7 +666,12 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
     response = elastic_load_balancer.create_load_balancer(
         Name='otofuji-lb',
         Subnets=[
-            vpc
+            'subnet-0f97ba686e75dfb10', 
+            'subnet-00baef21b74680367',
+            'subnet-01539151d6adb6873',
+            'subnet-0408943dc85ec5fdf',
+            'subnet-0d396ca117c2dcf56',
+            'subnet-09d783f3b388bd35a'
         ],
         
         
@@ -800,206 +800,10 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
     return None
 
 
-def autoscaling_ch(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
-
-
-    NOME_INSTANCIA_AS = "AS_NORT"
-    NOME_SECURITY_GROUP_LB_NV = "LBNV"
-
-    
-    NOME_LOADBALANCER = "LOADAPS"
-    NOME_AUTO_SCALLING = "AUTOSCALLINGAPS"
-
-
-    # Inicial o boto3
-    ec2_client_NV = boto3.client('ec2',region_name='us-east-1')
-    ec2_resource_NV = boto3.resource('ec2',region_name='us-east-1')
-    waiterTerminate_NV = ec2_client_NV.get_waiter('instance_terminated')
-    lb_client_NV = boto3.client('elb',region_name='us-east-1')
-    aa_client_NV = boto3.client('autoscaling')
-
-
-    instances = ec2_resource_NV.instances.filter(Filters=[{'Name':'tag:Name', 'Values':['AS: XYKO']},{'Name': 'instance-state-name', 'Values': ['running']}])
-    for instance in instances:
-        print("%s\nTerminating instance %s" % (instance,instance.id))
-        ec2_resource_NV.instances.filter(InstanceIds=[instance.id]).terminate()
-        waiterTerminate_NV.wait(InstanceIds=[instance.id])
-
-    instances = ec2_resource_NV.instances.filter(Filters=[{'Name':'tag:Name', 'Values':[NOME_AUTO_SCALLING]},{'Name': 'instance-state-name', 'Values': ['running']}])
-    for instance in instances:
-        print("%s\nTerminating instance %s" % (instance,instance.id))
-        ec2_resource_NV.instances.filter(InstanceIds=[instance.id]).terminate()
-        waiterTerminate_NV.wait(InstanceIds=[instance.id])
-    try:
-        response = aa_client_NV.delete_auto_scaling_group(AutoScalingGroupName=NOME_AUTO_SCALLING,ForceDelete=True)
-    except Exception as e:
-        print(e)
-    try:
-        response = aa_client_NV.delete_launch_configuration(LaunchConfigurationName=NOME_AUTO_SCALLING)
-    except Exception as e:
-        print(e)
-
-    # Load Balancer
-
-    #SG LB
-    # Security Group DB
-    print('Searching for existing Security Groups')
-    response = ec2_client_NV.describe_vpcs()
-    vpc_id = response.get('Vpcs', [{}])[0].get('VpcId', '')
-
-    # Verificar e apagar Security Group caso já exista
-    try:
-        print('Deleting existing Security Group %s' % (NOME_SECURITY_GROUP_LB_NV))
-        response = ec2_client_NV.describe_security_groups()
-        for i in response['SecurityGroups']:
-            if(i['GroupName'] == NOME_SECURITY_GROUP_LB_NV):
-                security_group_id = i['GroupId']
-                response = ec2_client_NV.delete_security_group(GroupId=security_group_id)
-                print("Deleted security group succesfully \n",response)
-    except ClientError as e:
-        print(e)
-
-    # Criar Security Group
-    try:
-        print("Creating new Security Group '%s'" % (NOME_SECURITY_GROUP_LB_NV))
-        response = ec2_client_NV.create_security_group(GroupName=NOME_SECURITY_GROUP_LB_NV,
-                                            Description='SG LB',
-                                            VpcId=vpc_id)
-        security_group_id = response['GroupId']
-        print('Security Group Created %s in vpc %s.' % (security_group_id, vpc_id))
-
-        data = ec2_client_NV.authorize_security_group_ingress(
-            GroupId=security_group_id,
-            IpPermissions=[
-                    {'IpProtocol': 'tcp',
-                    'FromPort': 80,
-                    'ToPort': 80,
-                    'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-                    {'IpProtocol': 'tcp',
-                    'FromPort': 8080,
-                    'ToPort': 8080,
-                    'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-                    {'IpProtocol': 'tcp',
-                    'FromPort': 5432,
-                    'ToPort': 5432,
-                    'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-                    {'IpProtocol': 'tcp',
-                    'FromPort': 22,
-                    'ToPort': 22,
-                    'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
-                ])
-        print('Ingress Successfully Set %s' % data)
-    except ClientError as e:
-        print(e)
-
-
-    #LB
-    response_deleted = lb_client_NV.delete_load_balancer(LoadBalancerName=NOME_LOADBALANCER)
-    print(response_deleted)
-
-    response = lb_client_NV.create_load_balancer(
-            LoadBalancerName=NOME_LOADBALANCER,
-            Listeners=[
-                {
-                    'Protocol': 'HTTP',
-                    'LoadBalancerPort': 80,
-                    'InstanceProtocol': 'HTTP',
-                    'InstancePort': 5000,
-                }
-            ],
-            AvailabilityZones=[
-                'us-east-1a','us-east-1b','us-east-1c', 'us-east-1e', 'us-east-1f', 'us-east-1d'
-            ],
-            SecurityGroups=[security_group_id,],
-            Tags=[
-                {
-                    'Key':'Owner',
-                    'Value': 'otofuji'
-                }
-            ]
-        )
-
-
-    # Elastic IPs
-    filters = [
-        {'Name': 'domain', 'Values': ['vpc']}
-    ]
-    NV_ELASTIC = {'Allocation ID':"","Elastic IP":""}
-    NV2_ELASTIC = {'Allocation ID':"","Elastic IP":""}
-
-        # NV
-    NV_NEED_CREATE = True
-    response = ec2_client_NV.describe_addresses(Filters=filters)
-    try:
-        for i in response['Addresses']:
-            if 'NetworkInterfaceId' not in i:
-                NV_NEED_CREATE = False
-                NV_ELASTIC['Allocation ID'] = i['AllocationId']
-                NV_ELASTIC['Elastic IP'] = i['PublicIp']
-    except Exception as e: 
-        print("ERROR ",e)
-
-
-
-    # CREATE IF NOT EXIST ELASTIC IP
-
-    if NV_NEED_CREATE:
-        response = ec2_client_NV.allocate_address(Domain='vpc')
-        NV_ELASTIC['Allocation ID'] = response['AllocationId']
-        NV_ELASTIC['Elastic IP'] = response['PublicIp']
-
-
-    print("ELASTIC NV : %s" % (NV_ELASTIC['Elastic IP']))
-    print("             %s" % (NV_ELASTIC['Allocation ID']))
-
-
-
-    # Criar Base Autoscalling
-    print("Creating new Instance '%s'" % (NOME_INSTANCIA_AS))
-
-    userdd = str("""#cloud config
-    run cmd:
-    - sudo apt update -y;
-    - sudo apt install python3-pip -y;
-    - pip3 install flask requests;
-    """)
-
-    NV2_NEED_CREATE = True
-    response = ec2_client_NV.describe_addresses(Filters=filters)
-    try:
-        for i in response['Addresses']:
-            if 'NetworkInterfaceId' not in i:
-                NV2_NEED_CREATE = False
-                NV2_ELASTIC['Allocation ID'] = i['AllocationId']
-                NV2_ELASTIC['Elastic IP'] = i['PublicIp']
-    except Exception as e: 
-        print("ERROR ",e)
-
-    if NV2_NEED_CREATE:
-        response = ec2_client_NV.allocate_address(Domain='vpc')
-        NV2_ELASTIC['Allocation ID'] = response['AllocationId']
-        NV2_ELASTIC['Elastic IP'] = response['PublicIp']
-    ec2_client_NV.associate_address(DryRun = False,InstanceId = instance_id, AllocationId = NV2_ELASTIC["Allocation ID"]) 
-
-
-    # AutoScalling 
-    response = aa_client_NV.create_auto_scaling_group(
-            AutoScalingGroupName=NOME_AUTO_SCALLING,
-            InstanceId=instance_id,
-            MinSize=1,
-            MaxSize=10,
-            HealthCheckGracePeriod=300,
-            LoadBalancerNames=[
-                NOME_LOADBALANCER,
-            ]
-        )
-    print(response)
-
-
 
 
 us_east_2_ip = deploy_us_east_2()
 
-ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id = deploy_us_east_1(us_east_2_ip)
+ami_id, instance_id, ami_new_name, us_east_1_security_group_id = deploy_us_east_1(us_east_2_ip)
 
-aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id)
+aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id)
