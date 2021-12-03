@@ -517,9 +517,9 @@ def deploy_us_east_1(us_east_2_ip):
         ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
         print("    AMI criada (redundance mode)")
 
-    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id
+    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id, vpc_id
 
-def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
+def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id):
 
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     print("Security Group ID: ", us_east_1_security_group_id)
@@ -561,10 +561,12 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
 
     create_tg_response = elastic_load_balancer.create_target_group(Name='target',
                                                         Protocol='TCP',
-                                                        Port=8080)
+                                                        Port=80,
+                                                        VpcId = vpc_id,
+                                                        HealthCheckPort='8080')
 
     
-    """ autoscaling = boto3.client('autoscaling')
+    autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
         LaunchConfigurationName = 'project_lc',
         ImageId = ami_id,
@@ -657,7 +659,7 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
             'projectelb',
         ],
     )
- """
+ 
 
 
     return None
@@ -667,6 +669,6 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
 
 us_east_2_ip = deploy_us_east_2()
 
-ami_id, instance_id, ami_new_name, us_east_1_security_group_id = deploy_us_east_1(us_east_2_ip)
+ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id = deploy_us_east_1(us_east_2_ip)
 
-elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id)
+elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id)
