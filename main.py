@@ -248,6 +248,7 @@ def deploy_us_east_1(us_east_2_ip):
     #CLIENTE E RECURSO
     ec2_us_east_1 = boto3.client('ec2', region_name = 'us-east-1')
     ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
+    elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     #cliente e recurso
 
     #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
@@ -287,7 +288,7 @@ def deploy_us_east_1(us_east_2_ip):
 
     #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
     try:
-        free_of_lb = boto3.client('elbv2', region_name='us-east-1').delete_load_balancer(LoadBalancerName='otofuji-lb')
+        free_of_lb = elastic_load_balancer.delete_load_balancers(Names='otofuji-lb')
         print(free_of_lb)
         print("    LOAD BALANCER APAGADO")
     except:
@@ -514,148 +515,6 @@ def deploy_us_east_1(us_east_2_ip):
 
     return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id
 
-def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
-    #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
-
-    elastic_load_balancer = boto3.client('elb', region_name='us-east-1')
-    print("Security Group ID: ", us_east_1_security_group_id)
-    print("    CRIANDO LOAD BALANCER")
-    response = elastic_load_balancer.create_load_balancer(
-        LoadBalancerName = 'otofuji-lb',
-        Listeners = [
-            {
-                'Protocol': 'HTTP',
-                'LoadBalancerPort': 80,
-                'InstanceProtocol': 'HTTP',
-                'InstancePort': 80,
-            },
-        
-        ],
-        AvailabilityZones=[
-            'us-east-1a','us-east-1b','us-east-1c','us-east-1d','us-east-1e','us-east-1f'
-        ],
-
-        SecurityGroups = [
-            us_east_1_security_group_id
-        ],
-        Tags = [
-            {
-                'Key': 'Name',
-                'Value': 'ProjetoCloud'
-            },
-        ]   
-        
-    )
-
-    response = elastic_load_balancer.configure_health_check(
-        LoadBalancerName = 'otofuji-lb',
-        HealthCheck = {
-            'Target': 'HTTP:80/admin',
-            'Interval': 12,
-            'Timeout': 10,
-            'UnhealthyThreshold': 3,
-            'HealthyThreshold': 2
-        }
-    )
-
-    autoscaling = boto3.client('autoscaling')
-    response = autoscaling.create_launch_configuration(
-        LaunchConfigurationName = 'project_lc',
-        ImageId = ami_id,
-        SecurityGroups = [
-            us_east_1_security_group_id
-        ],
-        InstanceId = instance_id,
-        InstanceType = 't2.micro',
-        InstanceMonitoring = {
-            'Enabled': True
-        },
-    )
-
-        ##Create auto scaling groups
-
-    response = autoscaling.create_auto_scaling_group(
-    AutoScalingGroupName='project_lc',
-    LaunchConfigurationName='project_lc',
-    MinSize=2,
-    MaxSize=6,
-    LoadBalancerNames=[
-        'projectelb',
-    ],
-    HealthCheckType='ELB',
-    HealthCheckGracePeriod=300,
-    VPCZoneIdentifier='subnet-83dd6ade,subnet-28e79963'
-    )
-    ##Autoscaling Policies
-    response = autoscaling.put_scaling_policy(
-    AutoScalingGroupName='project_asg',
-    PolicyName='HighCPUUtilization',
-    AdjustmentType='PercentChangeInCapacity',
-    ScalingAdjustment=65,
-    Cooldown=60,
-    )
-    response = client_as.put_scaling_policy(
-    AutoScalingGroupName='project_asg',
-    PolicyName='LowCPUUtilization',
-    AdjustmentType='PercentChangeInCapacity',
-    ScalingAdjustment=20,
-    Cooldown=60,
-    )
-
-        #########CLOUDWATCH METRICS#############
-    client_cw = boto3.client('cloudwatch')
-    scaledown = client_cw.put_metric_alarm(
-        AlarmName='scaledown',
-        AlarmDescription='High CPU Utilization',
-        ActionsEnabled=True,
-        MetricName='CPUUtilization',
-        Namespace='ELB',
-        Statistic='Average',
-        Dimensions=[
-            {
-                'Name': 'InstanceId',
-                'Value': 'i-0bb3fcb4396da630b'
-            },
-        ],
-        Period=60,
-        Unit='Seconds',
-        EvaluationPeriods=1,
-        Threshold=65.0,
-        ComparisonOperator='GreaterThanOrEqualToThreshold',
-    )
-
-
-    scaleup = client_cw.put_metric_alarm(
-        AlarmName='scaleup',
-        AlarmDescription='Low CPU Utilization',
-        ActionsEnabled=True,
-        MetricName='CPUUtilization',
-        Namespace='ELB',
-        Statistic='Average',
-        Dimensions=[
-            {
-                'Name': 'InstanceId',
-                'Value': 'i-0bb3fcb4396da630b'
-            }
-        ],
-        Period=60,
-        Unit='Seconds',
-        EvaluationPeriods=2,
-        Threshold=20.0,
-        ComparisonOperator='LessThanThreshold'   
-    )	
-	
-    response = autoscaling.attach_load_balancers(
-        AutoScalingGroupName='project_asg',
-        LoadBalancerNames=[
-            'projectelb',
-        ],
-    )
-
-
-
-    return None
-
 def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
 
@@ -690,7 +549,12 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
         #CustomerOwnedIpv4Pool='string'
     )
     
-    
+    print("")
+    print("")
+    print("RESPONSE LOAD BALANCER")
+    print("    ", response)
+    print("")
+    print("")
     """ autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
         LaunchConfigurationName = 'project_lc',
