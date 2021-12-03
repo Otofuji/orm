@@ -672,7 +672,8 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
         Name='otofuji-lb',
         Subnets=[
             vpc,
-        ],""" 
+        ],
+        """ 
         SubnetMappings=[
             {
                 'SubnetId': 'string',
