@@ -290,10 +290,10 @@ def deploy_us_east_1(us_east_2_ip):
         free_of_lb = elastic_load_balancer.delete_load_balancers(Names='otofuji-lb')
         print(free_of_lb)
         print("    LOAD BALANCER APAGADO")
-    except:
+    except Exception as e:
         print("")
         print("")
-        print("NÃO É ASSIM QUE SE APAGA LOAD BALANCER")
+        print(e)
         print("")
         print("")
     #apaga load balancer Virgínia do Norte
