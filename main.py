@@ -293,6 +293,7 @@ def deploy_us_east_1(us_east_2_ip):
         print("    ", lb_arn)
         free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
         print(free_of_lb)
+        waiter = elastic_load_balancer.get_waiter('load_balancers_deleted') #Esse waiter foi dica do Helio Paiva
         print("    LOAD BALANCER APAGADO")
         time.sleep(30)
     except Exception as e:
@@ -521,7 +522,7 @@ def deploy_us_east_1(us_east_2_ip):
 
 def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id):
 
-    elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
+    elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1') #usar 'elbv2' ao invés do 'elb' foi uma dica do Abel Cavalcante e depois reforçada pelo Tiago Demay
     print("Security Group ID: ", us_east_1_security_group_id)
     print("    CRIANDO LOAD BALANCER")
 
@@ -534,8 +535,8 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
             'subnet-0408943dc85ec5fdf',
             'subnet-0d396ca117c2dcf56',
             'subnet-09d783f3b388bd35a'
-        ],
-        
+        ], 
+        #puxar as subnets padrão do AWS ao invés de criar manualmente foi dica do Abel Cavalcante
         
         SecurityGroups=[
             us_east_1_security_group_id,
@@ -565,51 +566,55 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
                                                         VpcId = vpc_id,
                                                         HealthCheckPort='8080')
 
+    existing_lb = elastic_load_balancer.describe_load_balancers()
+    lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
     
     autoscaling = boto3.client('autoscaling')
+    
     response = autoscaling.create_launch_configuration(
-        LaunchConfigurationName = 'project_lc',
+        LaunchConfigurationName='launch_autoscaling',
         ImageId = ami_id,
-        SecurityGroups = [
-            us_east_1_security_group_id
+        KeyName='KeyName_us_east_1',
+        SecurityGroups=[
+            us_east_1_security_group_id,
         ],
-        InstanceId = instance_id,
-        InstanceType = 't2.micro',
-        InstanceMonitoring = {
+        InstanceId=instance_id,
+        InstanceMonitoring={
             'Enabled': True
         },
+        EbsOptimized=True,
+        AssociatePublicIpAddress=True,
+        
     )
 
-        ##Create auto scaling groups
+    ##Create auto scaling groups
 
-    response = autoscaling.create_auto_scaling_group(
-    AutoScalingGroupName='project_lc',
-    LaunchConfigurationName='project_lc',
-    MinSize=2,
-    MaxSize=6,
-    LoadBalancerNames=[
-        'projectelb',
-    ],
-    HealthCheckType='ELB',
-    HealthCheckGracePeriod=300,
-    VPCZoneIdentifier='subnet-83dd6ade,subnet-28e79963'
+    response = client.create_auto_scaling_group(
+        AutoScalingGroupName='auto-scaling-group',
+        LaunchConfigurationName='launch_autoscaling',
+        InstanceId=instance_id,
+        MinSize=1,
+        MaxSize=123,
+        DesiredCapacity=123,
+        DefaultCooldown=123,
+        AvailabilityZones=[
+            'us-east-1a',
+            'us-east-1b',
+            'us-east-1c',
+            'us-east-1d',
+            'us-east-1e',
+            'us-east-1f'
+        ],
+        LoadBalancerNames=[
+            'otofuji-lb',
+        ],
+        ServiceLinkedRoleARN=lb_arn,
     )
+
+
+
     ##Autoscaling Policies
-    response = autoscaling.put_scaling_policy(
-    AutoScalingGroupName='project_asg',
-    PolicyName='HighCPUUtilization',
-    AdjustmentType='PercentChangeInCapacity',
-    ScalingAdjustment=65,
-    Cooldown=60,
-    )
-    response = client_as.put_scaling_policy(
-    AutoScalingGroupName='project_asg',
-    PolicyName='LowCPUUtilization',
-    AdjustmentType='PercentChangeInCapacity',
-    ScalingAdjustment=20,
-    Cooldown=60,
-    )
-
+    
         #########CLOUDWATCH METRICS#############
     client_cw = boto3.client('cloudwatch')
     scaledown = client_cw.put_metric_alarm(
