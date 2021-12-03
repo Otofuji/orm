@@ -690,18 +690,8 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
         #CustomerOwnedIpv4Pool='string'
     )
     
-    response = elastic_load_balancer.configure_health_check(
-        Name = 'otofuji-lb',
-        HealthCheck = {
-            'Target': 'HTTP:80/admin',
-            'Interval': 12,
-            'Timeout': 10,
-            'UnhealthyThreshold': 3,
-            'HealthyThreshold': 2
-        }
-    )
-
-    autoscaling = boto3.client('autoscaling')
+    
+    """ autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
         LaunchConfigurationName = 'project_lc',
         ImageId = ami_id,
@@ -794,7 +784,7 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
             'projectelb',
         ],
     )
-
+ """
 
 
     return None
