@@ -519,10 +519,7 @@ def deploy_us_east_1(us_east_2_ip):
 
     return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id
 
-def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
-    #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
-
-    #Porém, sofreu modificações tão drásticas que nem sei se sobrou algum resquício do pensamento original do Aishwarya... Acho que não.
+def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
 
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     print("Security Group ID: ", us_east_1_security_group_id)
@@ -672,4 +669,4 @@ us_east_2_ip = deploy_us_east_2()
 
 ami_id, instance_id, ami_new_name, us_east_1_security_group_id = deploy_us_east_1(us_east_2_ip)
 
-aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id)
+elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id)
