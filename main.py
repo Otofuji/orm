@@ -548,6 +548,7 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
                 'Value': 'ProjetoCloud'
             },
         ],
+        Scheme='internal',
         Type='application',
         IpAddressType='ipv4',
         #CustomerOwnedIpv4Pool='string'
