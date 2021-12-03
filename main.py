@@ -222,7 +222,6 @@ def deploy_us_east_2():
 
     c.connect( hostname = instance.public_dns_name, port = 22,  username = "ubuntu", password=None, pkey = k, key_filename = None, timeout=None,  allow_agent=True, look_for_keys=True, compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None, gss_trust_dns=True, passphrase=None, disabled_algorithms=None )
     print ("connected")
-    time.sleep(10)
     print("CONFIGURANDO")
     commands = [""]
     for command in commands:
@@ -517,6 +516,8 @@ def deploy_us_east_1(us_east_2_ip):
 
 def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
+
+    #Porém, sofreu modificações tão drásticas que nem sei se sobrou algum resquício do pensamento original do Aishwarya... Acho que não.
 
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     print("Security Group ID: ", us_east_1_security_group_id)
