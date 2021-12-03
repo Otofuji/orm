@@ -34,3 +34,4 @@ https://github.com/miztiik/AWS-Demos/blob/master/How-To/setup-autoscaling-with-b
 https://github.com/aish11/cc-auto-scaling-boto3
 https://pypi.org/project/stressypy/
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/elbv2.html
+https://www.stratoscale.com/knowledge/load-balancing/aws-elb/boto-3-for-elb/example-work-with-a-load-balancer-and-target-group/
