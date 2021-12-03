@@ -305,7 +305,7 @@ def deploy_us_east_1(us_east_2_ip):
     vpc_id = existing_SG.get('Vpcs', [{}])[0].get('VpcId', '')
     vpc = ec2_us_east_1.create_subnet(
         AvailabilityZone = 'us-east-1a',
-        CidrBlock = '10.0.0.0/16',
+        CidrBlock = '0.0.0.0/0',
         VpcId = vpc_id
     )
     print("    VpcId Virgínia do Norte")
@@ -671,17 +671,10 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
     response = elastic_load_balancer.create_load_balancer(
         Name='otofuji-lb',
         Subnets=[
-            vpc,
+            vpc
         ],
-        """ 
-        SubnetMappings=[
-            {
-                'SubnetId': 'string',
-                'AllocationId': 'string',
-                'PrivateIPv4Address': 'string',
-                'IPv6Address': 'string'
-            },
-        ], """
+        
+        
         SecurityGroups=[
             us_east_1_security_group_id,
         ],
