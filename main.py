@@ -517,7 +517,7 @@ def deploy_us_east_1(us_east_2_ip):
         ec2_us_east_1.get_waiter('image_available').wait(ImageIds=[ami_image['ImageId']])
         print("    AMI criada (redundance mode)")
 
-    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id, vpc
+    return ami_image['ImageId'], instance.id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id
 
 def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_security_group_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
@@ -661,7 +661,7 @@ def aish11_cc_auto_scaling_boto3(ami_id, instance_id, ami_new_name, us_east_1_se
 
     return None
 
-def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc):
+def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id):
     #Função derivada do projeto de Aishwarya Srivastava (Clemson, Carolina do Sul, EUA) extraído de https://github.com/aish11/cc-auto-scaling-boto3. Além da atribuição de créditos aqui, e da devida referência em refs/references.txt, o nome da função tem o nome de Aishwarya e seu repositório em homenagem a ele. Esta função tem por objetivo criar o load balancer e fazer autoscalling, após a criação das instâncias na duas regiões e da AMI conforme relaborado nas linhas acima.
 
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
@@ -671,8 +671,8 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
     response = elastic_load_balancer.create_load_balancer(
         Name='otofuji-lb',
         Subnets=[
-            'string',
-        ],
+            vpc,
+        ],""" 
         SubnetMappings=[
             {
                 'SubnetId': 'string',
@@ -680,20 +680,20 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
                 'PrivateIPv4Address': 'string',
                 'IPv6Address': 'string'
             },
-        ],
+        ], """
         SecurityGroups=[
             us_east_1_security_group_id,
         ],
-        Scheme='internet-facing'|'internal',
+        #Scheme='internet-facing'|'internal',
         Tags=[
             {
                 'Key': 'Name',
                 'Value': 'ProjetoCloud'
             },
         ],
-        Type='application'|'network'|'gateway',
-        IpAddressType='ipv4'|'dualstack',
-        CustomerOwnedIpv4Pool='string'
+        Type='application',
+        IpAddressType='ipv4',
+        #CustomerOwnedIpv4Pool='string'
     )
     
     response = elastic_load_balancer.configure_health_check(
@@ -1006,6 +1006,6 @@ def autoscaling_ch(ami_id, instance_id, ami_new_name, us_east_1_security_group_i
 
 us_east_2_ip = deploy_us_east_2()
 
-ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc = deploy_us_east_1(us_east_2_ip)
+ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id = deploy_us_east_1(us_east_2_ip)
 
-aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc)
+aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc, vpc_id)
