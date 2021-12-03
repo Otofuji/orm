@@ -561,6 +561,12 @@ def aish11_cc_auto_scaling_boto3_elbv2(ami_id, instance_id, ami_new_name, us_eas
     print("    ", response)
     print("")
     print("")
+
+    create_tg_response = elastic_load_balancer.create_target_group(Name='target',
+                                                        Protocol='TCP',
+                                                        Port=8080)
+
+    
     """ autoscaling = boto3.client('autoscaling')
     response = autoscaling.create_launch_configuration(
         LaunchConfigurationName = 'project_lc',
