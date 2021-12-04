@@ -249,24 +249,6 @@ def deploy_us_east_1(us_east_2_ip):
     ec2_resource_us_east_1 = boto3.resource('ec2', region_name = 'us-east-1')
     elastic_load_balancer = boto3.client('elbv2', region_name='us-east-1')
     #cliente e recurso
-     #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
-    try:
-        existing_lb = elastic_load_balancer.describe_load_balancers()
-        lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
-        print("lb_arn")
-        print("    ", lb_arn)
-        free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
-        print(free_of_lb)
-        waiter = elastic_load_balancer.get_waiter('load_balancers_deleted') #Esse waiter foi dica do Helio Paiva
-        print("    LOAD BALANCER APAGADO")
-        time.sleep(60)
-    except Exception as e:
-        print("")
-        print("")
-        print(e)
-        print("")
-        print("")
-    #apaga load balancer Virgínia do Norte
 
     #APAGA INSTÂNCIAS DE VIRGÍNIA DO NORTE
     finishing = False
@@ -303,7 +285,25 @@ def deploy_us_east_1(us_east_2_ip):
 
     #apaga instâncias de Virgínia do Norte
 
-   
+    #APAGA LOAD BALANCER VIRGÍNIA DO NORTE
+    try:
+        existing_lb = elastic_load_balancer.describe_load_balancers()
+        lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
+        print("lb_arn")
+        print("    ", lb_arn)
+        free_of_lb = elastic_load_balancer.delete_load_balancer(LoadBalancerArn=lb_arn)
+        print(free_of_lb)
+        waiter = elastic_load_balancer.get_waiter('load_balancers_deleted') #Esse waiter foi dica do Helio Paiva
+        print("    LOAD BALANCER APAGADO")
+        time.sleep(30)
+    except Exception as e:
+        print("")
+        print("")
+        print(e)
+        print("")
+        print("")
+    #apaga load balancer Virgínia do Norte
+
 
     #APAGA SECURITY GROUP EXISTENTE DE VIRGÍNIA DO NORTE
     print("Apagando SG-US-EAST-1")
@@ -526,7 +526,6 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
     print("Security Group ID: ", us_east_1_security_group_id)
     print("    CRIANDO LOAD BALANCER")
 
-    
     response = elastic_load_balancer.create_load_balancer(
         Name='otofuji-lb',
         Subnets=[
@@ -543,7 +542,7 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
             us_east_1_security_group_id,
         ],
         #Scheme='internet-facing'|'internal',
-        Scheme='internet-facing', #dica do Eduardo Marossi
+        Scheme='internet-facing',
         Tags=[
             {
                 'Key': 'Name',
@@ -564,13 +563,10 @@ def elbv2(ami_id, instance_id, ami_new_name, us_east_1_security_group_id, vpc_id
     print("")
 
     create_tg_response = elastic_load_balancer.create_target_group(Name='target',
-                                                        Protocol='HTTP',
-                                                        Port=8080,
+                                                        Protocol='TCP',
+                                                        Port=80,
                                                         VpcId = vpc_id,
-                                                        TargetType = 'instance',
-                                                        HealthCheckPort='8080',
-                                                        HealthCheckPath = '/admin/',
-                                                        HealthCheckProtocol = 'HTTP')
+                                                        HealthCheckPort='8080')
 
     existing_lb = elastic_load_balancer.describe_load_balancers()
     lb_arn: str = str(existing_lb['LoadBalancers'][0]['LoadBalancerArn'])
